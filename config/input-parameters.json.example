@@ -1,0 +1,16 @@
+{
+  "currency": "USDT",
+  "asset": "USDC",
+  "pair": "USDCUSDT",
+  "bollingerParams": {
+    "movingAverageTimeframe": "5",
+    "movingAverageLength": 48,
+    "movingAverageSource": "close",
+    "minStdConsidered": 0.00001,
+    "openBollingerBand": 0.5,
+    "closeBollingerBand": 0
+  },
+  "minSellPrice": 1,
+  "maxBuyPrice": 1.0006,
+  "leverage": 5
+}
