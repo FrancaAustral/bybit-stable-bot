@@ -45,7 +45,7 @@ class BybitWSV5 extends EventEmitter {
 
     // State attributes.
     this._isOpen = false
-    this._isClosing = false
+    this._isClosing = false // No reconnect in case user close connection.
     this._isAuthenticated = false
 
     // Event callbacks.
@@ -108,10 +108,10 @@ class BybitWSV5 extends EventEmitter {
     logger('log', true, `Websocket connection closed: ${reason} - ${this.name}`)
     this.cleanTimers()
     this._isOpen = false
-    this._isClosing = false
     this._ws = null
     this.emit('close')
     if (this.reconnect && !this._isClosing) this.reconnectAfterClose()
+    this._isClosing = false
   }
 
   _onWSError (error) {
