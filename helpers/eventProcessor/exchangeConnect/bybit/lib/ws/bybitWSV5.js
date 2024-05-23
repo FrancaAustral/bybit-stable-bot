@@ -150,10 +150,10 @@ class BybitWSV5 extends EventEmitter {
     }
   }
 
-  subscribe (topic, params, cb) {
+  subscribe (topic, cb) {
     const msg = {
       op: 'subscribe',
-      args: [topic, ...Object.values(params)]
+      args: [topic]
     }
     this.send(msg)
     this._subscriptions[topic] = cb
