@@ -72,8 +72,8 @@ class BybitWSV5 extends EventEmitter {
     })
 
     return new Promise((resolve) => {
-      this._ws.on('open', () => {
-        this._onWSOpen()
+      this._ws.on('open', async () => {
+        await this._onWSOpen() // Needs await to endure auth /re-auth.
         resolve() // Resolves after 'open' is received to ensure connection.
       })
     })
@@ -95,7 +95,9 @@ class BybitWSV5 extends EventEmitter {
 
   _onWSMessage (data) {
     const msg = JSON.parse(data)
+
     if (msg.retCode) logger('error', true, msg)
+    if (msg.op === 'auth') return this.emit('auth', data)
     if (msg.op === 'ping' || msg.op === 'pong') return this.resetPingPong()
     if (msg.op === 'subscribe') return this.emit('subcribe', msg.conn_id)
 
@@ -179,17 +181,19 @@ class BybitWSV5 extends EventEmitter {
     this.send(authMessage)
 
     return new Promise((resolve) => {
-      this._ws.once('auth', (data) => {
+      this.once('auth', (data) => {
         const message = JSON.parse(data)
-        if (message.op === 'auth' && message.retCode === 0) {
+        if (message.op === 'auth' && !message.retCode) {
           this._isAuthenticated = true
           logger(
             'log',
             true,
             `Websocket connection authenticated - ${this.name}`
           )
-          resolve()
+        } else {
+          throw new Error(`Websocket not authenticated - ${this.name}`)
         }
+        resolve()
       })
     })
   }
@@ -239,7 +243,7 @@ class BybitWSV5 extends EventEmitter {
       logger('log', true, `Websocket not open - ${this.name}`)
       return
     }
-    this._isClosing = true
+    this._isClosing = true // TODO - sacar comentario.
     this.cleanTimers()
     this._ws.close()
   }
