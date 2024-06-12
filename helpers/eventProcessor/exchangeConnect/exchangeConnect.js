@@ -74,7 +74,10 @@ class XchgConnect {
   }
 
   async updateWallets () {
-    const params = { accountType: this.accountType }
+    const params = {
+      accountType: this.accountType,
+      coin: `${this.currency},${this.asset}` // get zero asset info.
+    }
     const walletInfo = await this.rest.getWalletBalance(params)
     this.setWallet(walletInfo.result.list[0])
   }
