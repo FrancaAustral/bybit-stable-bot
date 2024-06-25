@@ -25,32 +25,33 @@ class Strategy {
     this.tradingInfo = tradingInfo
   }
 
-  getCloseSellOrderInfo (assetBalance, ordebook) {
+  getCloseSellOrderInfo (assetBalance) {
+    // Don't check against orderbook cause market orders are 0% fee.
     const { closeSellPrice } = this.bollinger.getBollingerPrices()
-    const { bidPrice } = ordebook.bid
-    const amount = Math.round(assetBalance * 100) / 100
-    return (bidPrice >= closeSellPrice)
-      ? { type: 'closeSellOrder', side: 'Sell', amount }
-      : false
+    const priceTickSize = 1 / +this.tradingInfo.priceFilter.tickSize
+    const price = Math.ceil(closeSellPrice * priceTickSize) / priceTickSize
+    const amountBasePrec = 1 / +this.tradingInfo.lotSizeFilter.basePrecision
+    const amount = Math.round(assetBalance * amountBasePrec) / amountBasePrec
+    return { type: 'closeSellOrder', side: 'Sell', amount, price }
   }
 
-  getCloseBuyOrderInfo (assetBalance, ordebook) {
+  getCloseBuyOrderInfo (assetBalance) {
+    // Don't check against orderbook cause market orders are 0% fee.
+    // assetBalance ensured < 0.
     const { closeBuyPrice } = this.bollinger.getBollingerPrices()
-    const { askPrice } = ordebook.ask
-    const amount = -Math.round(assetBalance * 100) / 100
-    return (askPrice <= closeBuyPrice)
-      ? { type: 'closeBuyOrder', side: 'Buy', amount }
-      : false
+    const priceTickSize = 1 / +this.tradingInfo.priceFilter.tickSize
+    const price = Math.floor(closeBuyPrice * priceTickSize) / priceTickSize
+    const amountBasePrec = 1 / +this.tradingInfo.lotSizeFilter.basePrecision
+    const amount = -Math.round(assetBalance * amountBasePrec) / amountBasePrec
+    return { type: 'closeBuyOrder', side: 'Buy', amount, price }
   }
 
-  getCloseOrderInfo (wallet, ordebook) {
+  getCloseOrderInfo (wallet) {
     const assetBalance = +wallet.coinsToWallet[this.asset].walletBalance
-    if (Math.abs(assetBalance) < +this.tradingInfo.lotSizeFilter.minOrderQty) {
-      return false
-    }
+    if (assetBalance === 0) return null
     return (assetBalance > 0)
-      ? this.getCloseSellOrderInfo(assetBalance, ordebook)
-      : this.getCloseBuyOrderInfo(assetBalance, ordebook)
+      ? this.getCloseSellOrderInfo(assetBalance)
+      : this.getCloseBuyOrderInfo(assetBalance)
   }
 
   calcCurrencyAvailable (wallet) {
@@ -96,13 +97,13 @@ class Strategy {
     )
   }
 
-  getOrderNeededData (wallet, ordebook, candles) {
+  getOrderNeededInfo (wallet, ordebook, candles) {
     // Returns { type, side, amount }.
     this.bollinger.updateBollingerPrices(candles)
-    return (
-      this.getCloseOrderInfo(wallet, ordebook) || // Prioritize close.
-      this.getOpenOrderInfo(wallet, ordebook)
-    )
+    return {
+      openOrderInfo: this.getOpenOrderInfo(wallet, ordebook),
+      closeOrderInfo: this.getCloseOrderInfo(wallet)
+    }
   }
 }
 
