@@ -96,7 +96,9 @@ class BybitWSV5 extends EventEmitter {
   _onWSMessage (data) {
     const msg = JSON.parse(data)
 
-    if (msg.retCode) logger('error', true, msg)
+    if (msg.retCode || msg.success === false) {
+      logger('error', true, this.name, msg)
+    }
     if (msg.op === 'auth') return this.emit('auth', data)
     if (msg.op === 'ping' || msg.op === 'pong') return this.resetPingPong()
     if (msg.op === 'subscribe') return this.emit('subcribe', msg.conn_id)
