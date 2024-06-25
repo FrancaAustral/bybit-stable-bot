@@ -231,6 +231,31 @@ class BybitWSV5 extends EventEmitter {
     this.send(orderMessage)
   }
 
+  updateOrder (updateArgs) {
+    const orderMessage = {
+      header: {
+        'X-BAPI-TIMESTAMP': Date.now().toString()
+      },
+      op: 'order.amend',
+      args: [updateArgs]
+    }
+
+    this.send(orderMessage)
+  }
+
+  cancelOrder (order) {
+    const { category, symbol, orderId } = order
+    const orderMessage = {
+      header: {
+        'X-BAPI-TIMESTAMP': Date.now().toString()
+      },
+      op: 'order.cancel',
+      args: [{ category, symbol, orderId }]
+    }
+
+    this.send(orderMessage)
+  }
+
   send (msg) {
     if (
       !this._ws ||
