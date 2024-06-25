@@ -15,6 +15,7 @@ class EventProcessor extends XchgConnect {
     await this.updateWallets()
     await this.updateCandles()
     await this.updateOrderbook()
+    await this.updateLimitOrders()
     const tradingInfo = await this.updatePairTradingInfo()
     this.strategy.setTradingInfo(tradingInfo)
   }
