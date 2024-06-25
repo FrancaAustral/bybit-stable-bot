@@ -52,7 +52,14 @@ class EventProcessor extends XchgConnect {
       this.logger('log', true, `REPAY: ${amount}`)
       return this.repayLiability()
     }
-    if (!this.closeOrder) return this.submitLimitOrder(closeOrderInfo)
+    if (!this.closeOrder) {
+      this.logger(
+        'log',
+        true,
+        'NEW CLOSE ORDER INFO:', closeOrderInfo, '\nob:', ordebook
+      )
+      return this.submitLimitOrder(closeOrderInfo)
+    }
     if (side !== this.closeOrder.side) {
       this.logger(
         'log',
@@ -67,6 +74,11 @@ class EventProcessor extends XchgConnect {
     if (amount !== +this.closeOrder.qty) updateParams.qty = amount.toString()
     if (price !== +this.closeOrder.price) updateParams.price = price.toString()
     if (Object.keys(updateParams).length) {
+      this.logger(
+        'log',
+        true,
+        'UPDATED CLOSE ORDER INFO:', closeOrderInfo, '\nob:', ordebook
+      )
       return this.updateLimitOrder(this.closeOrder, updateParams)
     }
   }
