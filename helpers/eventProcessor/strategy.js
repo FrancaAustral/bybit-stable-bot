@@ -100,7 +100,6 @@ class Strategy {
   }
 
   getOrderNeededInfo (wallet, ordebook, candles) {
-    // Returns { type, side, amount }.
     this.bollinger.updateBollingerPrices(candles)
     return {
       openOrderInfo: this.getOpenOrderInfo(wallet, ordebook),
