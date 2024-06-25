@@ -184,8 +184,12 @@ class BybitWSV5 extends EventEmitter {
 
     return new Promise((resolve) => {
       this.once('auth', (data) => {
-        const message = JSON.parse(data)
-        if (message.op === 'auth' && !message.retCode) {
+        const msg = JSON.parse(data)
+        const isAuthSuccessful = (
+          (this.name === 'private' && msg.success) ||
+          (this.name === 'trade' && msg.retCode === 0)
+        )
+        if (isAuthSuccessful) {
           this._isAuthenticated = true
           logger(
             'log',
@@ -193,7 +197,8 @@ class BybitWSV5 extends EventEmitter {
             `Websocket connection authenticated - ${this.name}`
           )
         } else {
-          throw new Error(`Websocket not authenticated - ${this.name}`)
+          const mStr = JSON.stringify(msg)
+          throw new Error(`Websocket not authenticated - ${this.name} ${mStr}`)
         }
         resolve()
       })
