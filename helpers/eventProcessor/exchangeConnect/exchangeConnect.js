@@ -300,6 +300,31 @@ class XchgConnect {
     }
     this.tradeWS.createOrder(order)
   }
+
+  submitLimitOrder ({ side, amount, price }) {
+    const order = {
+      category: 'spot',
+      symbol: this.pair,
+      isLeverage: 1,
+      side,
+      orderType: 'Limit',
+      qty: amount.toString(),
+      price: price.toString()
+    }
+    this.tradeWS.createOrder(order)
+  }
+
+  updateLimitOrder (order, updateParams) {
+    const { category, symbol, orderId } = order
+    const updateArgs = { category, symbol, orderId, ...updateParams }
+    this.tradeWS.updateOrder(updateArgs)
+  }
+
+  cancelLimitOrder (order) {
+    const { category, symbol, orderId } = order
+    this.logger('log', true, 'Canceling:', order)
+    this.tradeWS.cancelOrder({ category, symbol, orderId })
+  }
 }
 
 module.exports = {
