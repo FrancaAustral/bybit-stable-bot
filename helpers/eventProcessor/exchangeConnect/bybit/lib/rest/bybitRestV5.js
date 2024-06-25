@@ -64,6 +64,14 @@ class BybitRestV5 {
     return this.request('/account/wallet-balance', 'GET', params)
   }
 
+  getOrders (params) {
+    return this.request('/order/realtime', 'GET', params)
+  }
+
+  cancelAllOrders (params) {
+    return this.request('/order/cancel-all', 'POST', params)
+  }
+
   repay (params) {
     return this.request('/account/quick-repayment', 'POST', params)
   }
