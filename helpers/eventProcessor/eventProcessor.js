@@ -9,6 +9,7 @@ class EventProcessor extends XchgConnect {
     super(keys, inputParams)
     this.strategy = new Strategy(inputParams)
     this.tradeTimeout = null // Check orders in every interval.
+    this.intervalCount = 0 // Used to update exchange data.
   }
 
   async initTradingData () {
@@ -35,7 +36,16 @@ class EventProcessor extends XchgConnect {
 
   resetCheckTimeout () {
     clearTimeout(this.tradeTimeout)
-    this.tradeTimeout = setTimeout(() => {
+    this.tradeTimeout = setTimeout(async () => {
+      if (this.intervalCount >= 6) {
+        this.intervalCount = 0
+        try {
+          await this.updateLimitOrders()
+        } catch (e) {
+          this.logger('error', true, 'Interval error:', e.message, e.stack)
+        }
+      }
+      this.intervalCount++
       this.checkOrders('Interval check.')
     }, Math.floor((Math.random() * (12 - 8) + 8)) * 1000) // 8 to 12 seconds.
   }

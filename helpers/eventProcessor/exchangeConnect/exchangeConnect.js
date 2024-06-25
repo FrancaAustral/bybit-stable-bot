@@ -155,6 +155,17 @@ class XchgConnect {
     orders.forEach((o) => this.storeLimitOrder(o, 'closeOrder'))
   }
 
+  async validateOrdersData () {
+    const xchgOrders = await this.getLimitOders()
+    const xchgIds = xchgOrders.map((o) => o.orderId.toString())
+    const localIds = Object.keys(this.limitOrders)
+    const xchgOk = xchgIds.every((xchgId) => localIds.includes(xchgId))
+    const localOk = localIds.every((localId) => xchgIds.includes(localId))
+    if (xchgOk && localOk) return true
+    this.logger('error', true, 'Orders validate error.', xchgIds, localIds)
+    process.exit('1')
+  }
+
   storeCandle (candle) {
     const newCandle = { ...candle, hl2: (candle.high + candle.low) / 2 }
     this.candles.push(newCandle)
