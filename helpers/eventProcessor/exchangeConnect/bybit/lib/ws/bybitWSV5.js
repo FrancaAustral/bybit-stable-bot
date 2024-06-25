@@ -243,7 +243,7 @@ class BybitWSV5 extends EventEmitter {
       logger('log', true, `Websocket not open - ${this.name}`)
       return
     }
-    this._isClosing = true // TODO - sacar comentario.
+    this._isClosing = true
     this.cleanTimers()
     this._ws.close()
   }
