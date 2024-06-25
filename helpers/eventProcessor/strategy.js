@@ -71,7 +71,8 @@ class Strategy {
       currencyAvailable / askPrice * this.leverage,
       askAmount * 0.75
     )
-    const amount = Math.round(baseAmount * 100) / 100
+    const amountBasePrec = 1 / +this.tradingInfo.lotSizeFilter.basePrecision
+    const amount = Math.round(baseAmount * amountBasePrec) / amountBasePrec
     if (amount < +this.tradingInfo.lotSizeFilter.minOrderQty) return false
     return { type: 'openBuyOrder', side: 'Buy', amount }
   }
@@ -84,7 +85,8 @@ class Strategy {
       currencyAvailable / bidPrice * this.leverage,
       bidAmount * 0.75
     )
-    const amount = Math.round(baseAmount * 100) / 100
+    const amountBasePrec = 1 / +this.tradingInfo.lotSizeFilter.basePrecision
+    const amount = Math.round(baseAmount * amountBasePrec) / amountBasePrec
     if (amount < +this.tradingInfo.lotSizeFilter.minOrderQty) return false
     return { type: 'openSellOrder', side: 'Sell', amount }
   }
