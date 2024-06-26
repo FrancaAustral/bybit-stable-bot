@@ -38,11 +38,8 @@ class EventProcessor extends XchgConnect {
   }
 
   createOpenOrder (openOrderInfo, ordebook) {
-    this.logger(
-      'log',
-      true,
-      'NEW OPEN ORDER INFO:', openOrderInfo, '\nob:', ordebook
-    )
+    const msg = ['NEW OPEN ORDER INFO:', openOrderInfo, '\nob:', ordebook]
+    this.logger('log', true, ...msg)
     this.submitMarketOrder(openOrderInfo)
   }
 
@@ -53,32 +50,21 @@ class EventProcessor extends XchgConnect {
       return this.repayLiability()
     }
     if (!this.closeOrder) {
-      this.logger(
-        'log',
-        true,
-        'NEW CLOSE ORDER INFO:', closeOrderInfo, '\nob:', ordebook
-      )
+      const n = ['NEW CLOSE ORDER INFO:', closeOrderInfo, '\nob:', ordebook]
+      this.logger('log', true, ...n)
       return this.submitLimitOrder(closeOrderInfo)
     }
     if (side !== this.closeOrder.side) {
-      this.logger(
-        'log',
-        'error',
-        'Wrong close side:',
-        this.closeOrder,
-        closeOrderInfo
-      )
+      const c = ['WRONG ORDER SIDE:', this.closeOrder, closeOrderInfo]
+      this.logger('log', 'error', ...c)
       return this.cancelLimitOrder(this.closeOrder) // Just in case.
     }
     const updateParams = {}
     if (amount !== +this.closeOrder.qty) updateParams.qty = amount.toString()
     if (price !== +this.closeOrder.price) updateParams.price = price.toString()
     if (Object.keys(updateParams).length) {
-      this.logger(
-        'log',
-        true,
-        'UPDATED CLOSE ORDER INFO:', closeOrderInfo, '\nob:', ordebook
-      )
+      const m = ['UPDATED CLOSE ORDER INFO:', closeOrderInfo, '\nob:', ordebook]
+      this.logger('log', true, ...m)
       return this.updateLimitOrder(this.closeOrder, updateParams)
     }
   }
