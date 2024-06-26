@@ -69,7 +69,7 @@ class EventProcessor extends XchgConnect {
     }
   }
 
-  checkOrders (input) {
+  checkOrders () {
     try {
       const ordebook = this.getLastOrderbook()
       const candles = this.getLastCandles()
