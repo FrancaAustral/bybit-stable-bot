@@ -40,7 +40,7 @@ const TradingBot = tradingBotModule.__get__('TradingBot')
 const bot = new TradingBot(mockKeys, mockParams)
 bot.logger = () => {}
 
-describe('Test on Strategy class.', function () {
+describe('Test on TradingBot class.', function () {
   it('Parent class shoud be TradingBot.', function () {
     assert(bot instanceof EventProcessor)
   })
