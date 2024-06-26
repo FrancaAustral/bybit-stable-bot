@@ -46,7 +46,7 @@ const EventProcessor = processorModule.__get__('EventProcessor')
 const processor = new EventProcessor(mockKeys, mockParams)
 processor.logger = () => {}
 
-describe('Test on Strategy class.', function () {
+describe('Test on EventProcessor class.', function () {
   it('Parent class shoud be XchgConnect.', function () {
     assert(processor instanceof XchgConnect)
   })
