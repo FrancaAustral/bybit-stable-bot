@@ -125,7 +125,7 @@ class XchgConnect {
       : this.storeLimitOrder(order, 'closeOrder')
   }
 
-  async getLimitOders () {
+  async getLimitOrders () {
     const params = {
       category: 'spot',
       symbol: this.pair,
@@ -139,7 +139,7 @@ class XchgConnect {
   }
 
   async updateLimitOrders () {
-    const orders = await this.getLimitOders()
+    const orders = await this.getLimitOrders()
     if (orders.length > 1) {
       const canceled = await this.rest.cancelAllOrders({
         category: 'spot',
@@ -156,7 +156,7 @@ class XchgConnect {
   }
 
   async validateOrdersData () {
-    const xchgOrders = await this.getLimitOders()
+    const xchgOrders = await this.getLimitOrders()
     const xchgIds = xchgOrders.map((o) => o.orderId.toString())
     const localIds = Object.keys(this.limitOrders)
     const xchgOk = xchgIds.every((xchgId) => localIds.includes(xchgId))
