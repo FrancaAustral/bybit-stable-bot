@@ -93,11 +93,11 @@ class XchgConnect {
     this.logger('log', true, 'ON', order)
   }
 
-  async storeLimitOrder (order, type) {
+  storeLimitOrder (order, type) {
     const actualOrder = this[type]
     if (!actualOrder) return this.storeNewLimitOrder(order, type)
     if (actualOrder.orderId !== order.orderId) {
-      await this.cancelLimitOrder(actualOrder)
+      this.cancelLimitOrder(actualOrder)
       return this.storeNewLimitOrder(order, type)
     }
     this[type] = order
@@ -107,7 +107,7 @@ class XchgConnect {
   }
 
   removeLimitOrder (order, type) {
-    if (this[type]) delete this[type]
+    if (this[type]?.orderId === order.orderId) delete this[type]
     this.logger('log', true, 'OC:', order)
   }
 
