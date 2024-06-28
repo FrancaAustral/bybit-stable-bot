@@ -40,7 +40,7 @@ class XchgConnect {
 
     // Storage.
     this.wallet = {}
-    this.ordebook = { bid: [], ask: [] }
+    this.ordebook = { bid: {}, ask: {} }
     this.candles = []
     this.tradingInfo = {}
     this.closeOrder = null
