@@ -90,7 +90,7 @@ class XchgConnect {
 
   storeNewLimitOrder (order, type) {
     this[type] = order
-    logger('log', true, 'ON', order)
+    this.logger('log', true, 'ON', order)
   }
 
   async storeLimitOrder (order, type) {
@@ -102,13 +102,13 @@ class XchgConnect {
     }
     this[type] = order
     if (JSON.stringify(actualOrder) !== JSON.stringify(this[type])) {
-      logger('log', true, 'OU:', order)
+      this.logger('log', true, 'OU:', order)
     }
   }
 
   removeLimitOrder (order, type) {
     if (this[type]) delete this[type]
-    logger('log', true, 'OC:', order)
+    this.logger('log', true, 'OC:', order)
   }
 
   isCloseOrder (orderStatus) {
@@ -260,7 +260,7 @@ class XchgConnect {
     try {
       await this.rest.repay(params)
     } catch (error) {
-      logger('error', true, error)
+      this.logger('error', true, error)
     }
   }
 
