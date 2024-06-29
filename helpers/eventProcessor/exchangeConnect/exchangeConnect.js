@@ -40,13 +40,13 @@ class XchgConnect {
 
     // Storage.
     this.wallet = {}
-    this.ordebook = { bid: {}, ask: {} }
+    this.orderbook = { bid: {}, ask: {} }
     this.candles = []
     this.tradingInfo = {}
     this.closeOrder = null
 
     this.lastCandleMsgMts = 0
-    this.lastOrdebookMsgMts = 0
+    this.lastOrderbookMsgMts = 0
   }
 
   initInputParams (inputParams) {
@@ -209,11 +209,11 @@ class XchgConnect {
   setOrderbook (ob) {
     if (ob?.a && ob.a[0] && +ob.a[0][1]) {
       const [priceStr, amountStr] = ob.a[0]
-      this.ordebook.ask = { askAmount: +amountStr, askPrice: +priceStr }
+      this.orderbook.ask = { askAmount: +amountStr, askPrice: +priceStr }
     }
     if (ob?.b && ob.b[0] && +ob.b[0][1]) {
       const [priceStr, amountStr] = ob.b[0]
-      this.ordebook.bid = { bidAmount: +amountStr, bidPrice: +priceStr }
+      this.orderbook.bid = { bidAmount: +amountStr, bidPrice: +priceStr }
     }
   }
 
@@ -223,14 +223,14 @@ class XchgConnect {
       symbol: this.pair,
       limit: 1
     }
-    const ordebookInfo = await this.rest.getOrderBook(params)
-    this.setOrderbook(ordebookInfo.result)
-    this.lastOrdebookMsgMts = Date.now()
+    const orderbookInfo = await this.rest.getOrderBook(params)
+    this.setOrderbook(orderbookInfo.result)
+    this.lastOrderbookMsgMts = Date.now()
   }
 
   manageOrderbookMsg (msg) {
     this.setOrderbook(msg.data)
-    this.lastOrdebookMsgMts = msg.ts
+    this.lastOrderbookMsgMts = msg.ts
   }
 
   async updatePairTradingInfo () {
@@ -271,11 +271,11 @@ class XchgConnect {
   }
 
   getLastOrderbook () {
-    if (Date.now() - this.lastOrdebookMsgMts > 600000) { // 10 min delay.
+    if (Date.now() - this.lastOrderbookMsgMts > 600000) { // 10 min delay.
       this.logger('error', true, 'NO ORDERBOOKS UPDATES.')
       process.exit('2')
     }
-    return this.ordebook
+    return this.orderbook
   }
 
   submitMarketOrder ({ side, amount }) {

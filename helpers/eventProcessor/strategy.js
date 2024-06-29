@@ -63,9 +63,9 @@ class Strategy {
     return Math.max(availableRatio * totalMarginBalance, 0)
   }
 
-  getOpenBuyOrderInfo (currencyAvailable, ordebook) {
+  getOpenBuyOrderInfo (currencyAvailable, orderbook) {
     const { openBuyPrice } = this.bollinger.getBollingerPrices()
-    const { askPrice, askAmount } = ordebook.ask
+    const { askPrice, askAmount } = orderbook.ask
     if (askPrice > openBuyPrice) return false
     const baseAmount = Math.min(
       currencyAvailable / askPrice * this.leverage,
@@ -77,9 +77,9 @@ class Strategy {
     return { type: 'openBuyOrder', side: 'Buy', amount }
   }
 
-  getOpenSellOrderInfo (currencyAvailable, ordebook) {
+  getOpenSellOrderInfo (currencyAvailable, orderbook) {
     const { openSellPrice } = this.bollinger.getBollingerPrices()
-    const { bidPrice, bidAmount } = ordebook.bid
+    const { bidPrice, bidAmount } = orderbook.bid
     if (bidPrice < openSellPrice) return false
     const baseAmount = Math.min(
       currencyAvailable / bidPrice * this.leverage,
@@ -91,18 +91,18 @@ class Strategy {
     return { type: 'openSellOrder', side: 'Sell', amount }
   }
 
-  getOpenOrderInfo (wallet, ordebook) {
+  getOpenOrderInfo (wallet, orderbook) {
     const currencyAvailable = this.calcCurrencyAvailable(wallet)
     return (
-      this.getOpenBuyOrderInfo(currencyAvailable, ordebook) ||
-      this.getOpenSellOrderInfo(currencyAvailable, ordebook)
+      this.getOpenBuyOrderInfo(currencyAvailable, orderbook) ||
+      this.getOpenSellOrderInfo(currencyAvailable, orderbook)
     )
   }
 
-  getOrderNeededInfo (wallet, ordebook, candles) {
+  getOrderNeededInfo (wallet, orderbook, candles) {
     this.bollinger.updateBollingerPrices(candles)
     return {
-      openOrderInfo: this.getOpenOrderInfo(wallet, ordebook),
+      openOrderInfo: this.getOpenOrderInfo(wallet, orderbook),
       closeOrderInfo: this.getCloseOrderInfo(wallet)
     }
   }

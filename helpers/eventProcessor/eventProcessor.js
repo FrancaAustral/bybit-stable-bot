@@ -37,20 +37,20 @@ class EventProcessor extends XchgConnect {
     }, Math.floor((Math.random() * (12 - 8) + 8)) * 1000) // 8 to 12 seconds.
   }
 
-  createOpenOrder (openOrderInfo, ordebook) {
-    const msg = ['NEW OPEN ORDER INFO:', openOrderInfo, '\nob:', ordebook]
+  createOpenOrder (openOrderInfo, orderbook) {
+    const msg = ['NEW OPEN ORDER INFO:', openOrderInfo, '\nob:', orderbook]
     this.logger('log', true, ...msg)
     this.submitMarketOrder(openOrderInfo)
   }
 
-  verifyCloseOrder (closeOrderInfo, ordebook) {
+  verifyCloseOrder (closeOrderInfo, orderbook) {
     const { side, amount, price } = closeOrderInfo
     if (amount < +this.tradingInfo.lotSizeFilter.minOrderQty) {
       this.logger('log', true, `REPAY: ${amount}`)
       return this.repayLiability()
     }
     if (!this.closeOrder) {
-      const n = ['NEW CLOSE ORDER INFO:', closeOrderInfo, '\nob:', ordebook]
+      const n = ['NEW CLOSE ORDER INFO:', closeOrderInfo, '\nob:', orderbook]
       this.logger('log', true, ...n)
       return this.submitLimitOrder(closeOrderInfo)
     }
@@ -63,7 +63,7 @@ class EventProcessor extends XchgConnect {
     if (amount !== +this.closeOrder.qty) updateParams.qty = amount.toString()
     if (price !== +this.closeOrder.price) updateParams.price = price.toString()
     if (Object.keys(updateParams).length) {
-      const m = ['UPDATED CLOSE ORDER INFO:', closeOrderInfo, '\nob:', ordebook]
+      const m = ['UPDATE CLOSE ORDER INFO:', closeOrderInfo, '\nob:', orderbook]
       this.logger('log', true, ...m)
       return this.updateLimitOrder(this.closeOrder, updateParams)
     }
@@ -71,15 +71,15 @@ class EventProcessor extends XchgConnect {
 
   checkOrders () {
     try {
-      const ordebook = this.getLastOrderbook()
+      const orderbook = this.getLastOrderbook()
       const candles = this.getLastCandles()
       const wallet = this.getLastWallet()
       const {
         openOrderInfo,
         closeOrderInfo
-      } = this.strategy.getOrderNeededInfo(wallet, ordebook, candles)
-      if (openOrderInfo) return this.createOpenOrder(openOrderInfo, ordebook)
-      if (closeOrderInfo) this.verifyCloseOrder(closeOrderInfo, ordebook)
+      } = this.strategy.getOrderNeededInfo(wallet, orderbook, candles)
+      if (openOrderInfo) return this.createOpenOrder(openOrderInfo, orderbook)
+      if (closeOrderInfo) this.verifyCloseOrder(closeOrderInfo, orderbook)
     } catch (e) {
       this.logger('error', true, 'Check orders error:', e.message, e.stack)
     } finally {
