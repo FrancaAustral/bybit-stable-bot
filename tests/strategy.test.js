@@ -195,19 +195,34 @@ describe('Test on Strategy class.', function () {
     strategy.asset = 'USDC'
     const tests = [
       {
-        wallet: { coinsToWallet: { USDC: { walletBalance: '0' } } },
+        wallet: {
+          coinsToWallet: {
+            USDC: { walletBalance: '0.0014', borrowAmount: '0' },
+            USDT: { walletBalance: '0', borrowAmount: '0' }
+          }
+        },
         sellCall: false,
         buyCall: false,
         expected: null
       },
       {
-        wallet: { coinsToWallet: { USDC: { walletBalance: '10' } } },
+        wallet: {
+          coinsToWallet: {
+            USDC: { walletBalance: '10', borrowAmount: '0' },
+            USDT: { walletBalance: '0', borrowAmount: '8' }
+          }
+        },
         sellCall: true,
         buyCall: false,
         expected: 'SellOrderInfo'
       },
       {
-        wallet: { coinsToWallet: { USDC: { walletBalance: '-10' } } },
+        wallet: {
+          coinsToWallet: {
+            USDC: { walletBalance: '-10', borrowAmount: '10' },
+            USDT: { walletBalance: '0', borrowAmount: '0' }
+          }
+        },
         sellCall: false,
         buyCall: true,
         expected: 'BuyOrderInfo'

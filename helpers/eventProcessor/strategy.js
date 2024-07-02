@@ -47,8 +47,11 @@ class Strategy {
   }
 
   getCloseOrderInfo (wallet) {
+    const borrowed = Object.values(wallet.coinsToWallet).reduce((p, c) => {
+      return p + (+c.borrowAmount)
+    }, 0)
+    if (borrowed === 0) return null
     const assetBalance = +wallet.coinsToWallet[this.asset].walletBalance
-    if (assetBalance === 0) return null
     return (assetBalance > 0)
       ? this.getCloseSellOrderInfo(assetBalance)
       : this.getCloseBuyOrderInfo(assetBalance)
