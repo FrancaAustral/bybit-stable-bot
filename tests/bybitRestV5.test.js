@@ -135,7 +135,6 @@ describe('Test on XchgConnect class.', function () {
       stubGet.restore()
       stubPost.restore()
     }
-    
   })
 
   it('Method getCandles should GET kline endpoint.', function () {
