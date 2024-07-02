@@ -28,7 +28,7 @@ const restV5 = new restV5Module.BybitRestV5({
   useTestNet: false
 })
 
-describe('Test on XchgConnect class.', function () {
+describe('Test on RestV5Module class.', function () {
   it('Constructor should init all needed attribures.', function () {
     // Assertions.
     assert.strictEqual(restV5.apiKey, 'apiKey')
