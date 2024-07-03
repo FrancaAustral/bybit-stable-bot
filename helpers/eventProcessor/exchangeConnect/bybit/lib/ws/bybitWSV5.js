@@ -73,7 +73,7 @@ class BybitWSV5 extends EventEmitter {
 
     return new Promise((resolve) => {
       this._ws.on('open', async () => {
-        await this._onWSOpen() // Needs await to endure auth /re-auth.
+        await this._onWSOpen() // Needs await to ensure auth /re-auth.
         resolve() // Resolves after 'open' is received to ensure connection.
       })
     })
