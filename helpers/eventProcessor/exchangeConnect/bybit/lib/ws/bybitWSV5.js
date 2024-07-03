@@ -101,7 +101,7 @@ class BybitWSV5 extends EventEmitter {
     }
     if (msg.op === 'auth') return this.emit('auth', data)
     if (msg.op === 'ping' || msg.op === 'pong') return this.resetPingPong()
-    if (msg.op === 'subscribe') return this.emit('subcribe', msg.conn_id)
+    if (msg.op === 'subscribe') return this.emit('subscribe', msg.conn_id)
 
     this.emit('message', msg)
     const subsCb = this._subscriptions[msg.topic]
