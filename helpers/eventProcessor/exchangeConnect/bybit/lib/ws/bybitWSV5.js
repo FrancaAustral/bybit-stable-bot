@@ -118,9 +118,9 @@ class BybitWSV5 extends EventEmitter {
     this._isClosing = false
   }
 
-  _onWSError (error) {
-    logger('error', true, 'Websocket error:', error)
-    this.emit('error', error)
+  _onWSError (e) {
+    logger('error', true, 'Websocket error:', e.message || e.msg, e.stack)
+    this.emit('error', e)
   }
 
   resetPingPong () {
