@@ -25,84 +25,89 @@ class Strategy {
     this.tradingInfo = tradingInfo
   }
 
-  getCloseSellOrderInfo (assetBalance, ordebook) {
+  getCloseSellOrderInfo (assetBalance) {
+    // Don't check against orderbook cause market orders are 0% fee.
     const { closeSellPrice } = this.bollinger.getBollingerPrices()
-    const { bidPrice } = ordebook.bid
-    const amount = Math.round(assetBalance * 100) / 100
-    return (bidPrice >= closeSellPrice)
-      ? { type: 'closeSellOrder', side: 'Sell', amount }
-      : false
+    const priceTickSize = 1 / +this.tradingInfo.priceFilter.tickSize
+    const price = Math.ceil(closeSellPrice * priceTickSize) / priceTickSize
+    const amountBasePrec = 1 / +this.tradingInfo.lotSizeFilter.basePrecision
+    const amount = Math.round(assetBalance * amountBasePrec) / amountBasePrec
+    return { type: 'closeSellOrder', side: 'Sell', amount, price }
   }
 
-  getCloseBuyOrderInfo (assetBalance, ordebook) {
+  getCloseBuyOrderInfo (assetBalance) {
+    // Don't check against orderbook cause market orders are 0% fee.
+    // assetBalance ensured < 0.
     const { closeBuyPrice } = this.bollinger.getBollingerPrices()
-    const { askPrice } = ordebook.ask
-    const amount = -Math.round(assetBalance * 100) / 100
-    return (askPrice <= closeBuyPrice)
-      ? { type: 'closeBuyOrder', side: 'Buy', amount }
-      : false
+    const priceTickSize = 1 / +this.tradingInfo.priceFilter.tickSize
+    const price = Math.floor(closeBuyPrice * priceTickSize) / priceTickSize
+    const amountBasePrec = 1 / +this.tradingInfo.lotSizeFilter.basePrecision
+    const amount = -Math.round(assetBalance * amountBasePrec) / amountBasePrec
+    return { type: 'closeBuyOrder', side: 'Buy', amount, price }
   }
 
-  getCloseOrderInfo (wallet, ordebook) {
+  getCloseOrderInfo (wallet) {
+    const borrowed = Object.values(wallet.coinsToWallet).reduce((p, c) => {
+      return p + (+c.borrowAmount)
+    }, 0)
+    if (borrowed === 0) return null
     const assetBalance = +wallet.coinsToWallet[this.asset].walletBalance
-    if (Math.abs(assetBalance) < +this.tradingInfo.lotSizeFilter.minOrderQty) {
-      return false
-    }
     return (assetBalance > 0)
-      ? this.getCloseSellOrderInfo(assetBalance, ordebook)
-      : this.getCloseBuyOrderInfo(assetBalance, ordebook)
+      ? this.getCloseSellOrderInfo(assetBalance)
+      : this.getCloseBuyOrderInfo(assetBalance)
   }
 
   calcCurrencyAvailable (wallet) {
     // Get ratio un usd equivalent and apply it to balance.
     const { coinsToWallet, totalMarginBalance } = wallet
-    const assetUsdEq = Math.abs(coinsToWallet[this.asset].usdValue)
-    const maxUsdEqToTrade = totalMarginBalance * this.leverage
+    const assetUsdEq = Math.abs(+coinsToWallet[this.asset].usdValue)
+    const maxUsdEqToTrade = +totalMarginBalance * this.leverage
     const availableRatio = (maxUsdEqToTrade - assetUsdEq) / maxUsdEqToTrade
     return Math.max(availableRatio * totalMarginBalance, 0)
   }
 
-  getOpenBuyOrderInfo (currencyAvailable, ordebook) {
+  getOpenBuyOrderInfo (currencyAvailable, orderbook) {
     const { openBuyPrice } = this.bollinger.getBollingerPrices()
-    const { askPrice, askAmount } = ordebook.ask
+    const { askPrice, askAmount } = orderbook.ask
     if (askPrice > openBuyPrice) return false
     const baseAmount = Math.min(
       currencyAvailable / askPrice * this.leverage,
       askAmount * 0.75
     )
-    const amount = Math.round(baseAmount * 100) / 100
+    const amountBasePrec = 1 / +this.tradingInfo.lotSizeFilter.basePrecision
+    const amount = Math.round(baseAmount * amountBasePrec) / amountBasePrec
     if (amount < +this.tradingInfo.lotSizeFilter.minOrderQty) return false
     return { type: 'openBuyOrder', side: 'Buy', amount }
   }
 
-  getOpenSellOrderInfo (currencyAvailable, ordebook) {
+  getOpenSellOrderInfo (currencyAvailable, orderbook) {
     const { openSellPrice } = this.bollinger.getBollingerPrices()
-    const { bidPrice, bidAmount } = ordebook.bid
+    const { bidPrice, bidAmount } = orderbook.bid
     if (bidPrice < openSellPrice) return false
     const baseAmount = Math.min(
       currencyAvailable / bidPrice * this.leverage,
       bidAmount * 0.75
     )
-    const amount = Math.round(baseAmount * 100) / 100
+    const amountBasePrec = 1 / +this.tradingInfo.lotSizeFilter.basePrecision
+    const amount = Math.round(baseAmount * amountBasePrec) / amountBasePrec
     if (amount < +this.tradingInfo.lotSizeFilter.minOrderQty) return false
     return { type: 'openSellOrder', side: 'Sell', amount }
   }
 
-  getOpenOrderInfo (wallet, ordebook) {
+  getOpenOrderInfo (wallet, orderbook) {
     const currencyAvailable = this.calcCurrencyAvailable(wallet)
     return (
-      this.getOpenBuyOrderInfo(currencyAvailable, ordebook) ||
-      this.getOpenSellOrderInfo(currencyAvailable, ordebook)
+      this.getOpenBuyOrderInfo(currencyAvailable, orderbook) ||
+      this.getOpenSellOrderInfo(currencyAvailable, orderbook)
     )
   }
 
-  getOrderNeededData (wallet, ordebook, candles) {
-    // Returns { type, side, amount }.
+  getOrderNeededInfo (wallet, orderbook, candles) {
     this.bollinger.updateBollingerPrices(candles)
-    return (
-      this.getCloseOrderInfo(wallet, ordebook) || // Prioritize close.
-      this.getOpenOrderInfo(wallet, ordebook)
-    )
+    return {
+      openOrderInfo: this.getOpenOrderInfo(wallet, orderbook),
+      closeOrderInfo: this.getCloseOrderInfo(wallet)
+    }
   }
 }
 

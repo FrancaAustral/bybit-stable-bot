@@ -17,7 +17,7 @@ class TradingBot extends EventProcessor {
 
     this.privateWS.subscribe('wallet', this.manageWalletMsg.bind(this))
     this.privateWS.subscribe('execution.spot', this.logWSMessage.bind(this))
-    this.privateWS.subscribe('order.spot', this.logWSMessage.bind(this))
+    this.privateWS.subscribe('order.spot', this.manageOrderMsg.bind(this))
   }
 
   async startWSConnections () {

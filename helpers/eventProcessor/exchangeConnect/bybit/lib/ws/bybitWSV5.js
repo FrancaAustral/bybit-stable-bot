@@ -73,7 +73,7 @@ class BybitWSV5 extends EventEmitter {
 
     return new Promise((resolve) => {
       this._ws.on('open', async () => {
-        await this._onWSOpen() // Needs await to endure auth /re-auth.
+        await this._onWSOpen() // Needs await to ensure auth /re-auth.
         resolve() // Resolves after 'open' is received to ensure connection.
       })
     })
@@ -96,10 +96,12 @@ class BybitWSV5 extends EventEmitter {
   _onWSMessage (data) {
     const msg = JSON.parse(data)
 
-    if (msg.retCode) logger('error', true, msg)
+    if (msg.retCode || msg.success === false) {
+      logger('error', true, this.name, msg)
+    }
     if (msg.op === 'auth') return this.emit('auth', data)
     if (msg.op === 'ping' || msg.op === 'pong') return this.resetPingPong()
-    if (msg.op === 'subscribe') return this.emit('subcribe', msg.conn_id)
+    if (msg.op === 'subscribe') return this.emit('subscribe', msg.conn_id)
 
     this.emit('message', msg)
     const subsCb = this._subscriptions[msg.topic]
@@ -116,9 +118,9 @@ class BybitWSV5 extends EventEmitter {
     this._isClosing = false
   }
 
-  _onWSError (error) {
-    logger('error', true, 'Websocket error:', error)
-    this.emit('error', error)
+  _onWSError (e) {
+    logger('error', true, 'Websocket error:', e.message || e.msg, e.stack)
+    this.emit('error', e)
   }
 
   resetPingPong () {
@@ -182,8 +184,12 @@ class BybitWSV5 extends EventEmitter {
 
     return new Promise((resolve) => {
       this.once('auth', (data) => {
-        const message = JSON.parse(data)
-        if (message.op === 'auth' && !message.retCode) {
+        const msg = JSON.parse(data)
+        const isAuthSuccessful = (
+          (this.name === 'private' && msg.success) ||
+          (this.name === 'trade' && msg.retCode === 0)
+        )
+        if (isAuthSuccessful) {
           this._isAuthenticated = true
           logger(
             'log',
@@ -191,7 +197,8 @@ class BybitWSV5 extends EventEmitter {
             `Websocket connection authenticated - ${this.name}`
           )
         } else {
-          throw new Error(`Websocket not authenticated - ${this.name}`)
+          const mStr = JSON.stringify(msg)
+          throw new Error(`Websocket not authenticated - ${this.name} ${mStr}`)
         }
         resolve()
       })
@@ -224,6 +231,31 @@ class BybitWSV5 extends EventEmitter {
     this.send(orderMessage)
   }
 
+  updateOrder (updateArgs) {
+    const orderMessage = {
+      header: {
+        'X-BAPI-TIMESTAMP': Date.now().toString()
+      },
+      op: 'order.amend',
+      args: [updateArgs]
+    }
+
+    this.send(orderMessage)
+  }
+
+  cancelOrder (order) {
+    const { category, symbol, orderId } = order
+    const orderMessage = {
+      header: {
+        'X-BAPI-TIMESTAMP': Date.now().toString()
+      },
+      op: 'order.cancel',
+      args: [{ category, symbol, orderId }]
+    }
+
+    this.send(orderMessage)
+  }
+
   send (msg) {
     if (
       !this._ws ||
@@ -243,7 +275,7 @@ class BybitWSV5 extends EventEmitter {
       logger('log', true, `Websocket not open - ${this.name}`)
       return
     }
-    this._isClosing = true // TODO - sacar comentario.
+    this._isClosing = true
     this.cleanTimers()
     this._ws.close()
   }

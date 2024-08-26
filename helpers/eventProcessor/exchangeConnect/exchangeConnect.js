@@ -40,12 +40,13 @@ class XchgConnect {
 
     // Storage.
     this.wallet = {}
-    this.ordebook = { bid: [], ask: [] }
+    this.orderbook = { bid: {}, ask: {} }
     this.candles = []
     this.tradingInfo = {}
+    this.closeOrder = null
 
     this.lastCandleMsgMts = 0
-    this.lastOrdebookMsgMts = 0
+    this.lastOrderbookMsgMts = 0
   }
 
   initInputParams (inputParams) {
@@ -66,7 +67,7 @@ class XchgConnect {
     this.logger('log', true, `WU: marginBce: ${mBce} availableBce: ${aBce}`)
     const coinsToWallet = w.coin.reduce((prev, curr) => {
       const { coin, walletBalance: balance, borrowAmount } = curr
-      if (![this.currency, this.asset].includes(coin)) return prev
+      if (!this.walletCoins.includes(coin)) return prev
       this.logger('log', true, 'WU:', [coin, balance, borrowAmount])
       prev[coin] = curr
       return prev
@@ -85,6 +86,73 @@ class XchgConnect {
 
   manageWalletMsg (msg) {
     this.setWallet(msg.data[0])
+  }
+
+  storeNewLimitOrder (order, type) {
+    this[type] = order
+    this.logger('log', true, 'ON', order)
+  }
+
+  storeLimitOrder (order, type) {
+    const actualOrder = this[type]
+    if (!actualOrder) return this.storeNewLimitOrder(order, type)
+    if (actualOrder.orderId !== order.orderId) {
+      this.cancelLimitOrder(actualOrder)
+      return this.storeNewLimitOrder(order, type)
+    }
+    this[type] = order
+    if (JSON.stringify(actualOrder) !== JSON.stringify(this[type])) {
+      this.logger('log', true, 'OU:', order)
+    }
+  }
+
+  removeLimitOrder (order, type) {
+    if (this[type]?.orderId === order.orderId) delete this[type]
+    this.logger('log', true, 'OC:', order)
+  }
+
+  isCloseOrder (orderStatus) {
+    // Bot not using Conditional order, in that case add 'Untriggered'
+    return !['New', 'PartiallyFilled'].includes(orderStatus)
+  }
+
+  manageOrderMsg (msg) {
+    const order = msg.data[0]
+    const { category, orderType, orderStatus } = order
+    if (category !== 'spot' || orderType !== 'Limit') return false
+    return (this.isCloseOrder(orderStatus))
+      ? this.removeLimitOrder(order, 'closeOrder')
+      : this.storeLimitOrder(order, 'closeOrder')
+  }
+
+  async getLimitOrders () {
+    const params = {
+      category: 'spot',
+      symbol: this.pair,
+      openOnly: 0, // Only returns open orders.
+      limit: 50
+    }
+    const ordersResponse = await this.rest.getOrders(params)
+    return ordersResponse.result.list.map((o) => {
+      return { category: 'spot', ...o } // Response missing 'category'.
+    })
+  }
+
+  async updateLimitOrders () {
+    const orders = await this.getLimitOrders()
+    if (orders.length > 1) {
+      const canceled = await this.rest.cancelAllOrders({
+        category: 'spot',
+        symbol: this.pair
+      })
+      return this.logger(
+        'log',
+        true,
+        'Canceled multiple limit orders:',
+        canceled.result.list.map((o) => o.orderId)
+      )
+    }
+    orders.forEach((o) => this.storeLimitOrder(o, 'closeOrder'))
   }
 
   storeCandle (candle) {
@@ -141,11 +209,11 @@ class XchgConnect {
   setOrderbook (ob) {
     if (ob?.a && ob.a[0] && +ob.a[0][1]) {
       const [priceStr, amountStr] = ob.a[0]
-      this.ordebook.ask = { askAmount: +amountStr, askPrice: +priceStr }
+      this.orderbook.ask = { askAmount: +amountStr, askPrice: +priceStr }
     }
     if (ob?.b && ob.b[0] && +ob.b[0][1]) {
       const [priceStr, amountStr] = ob.b[0]
-      this.ordebook.bid = { bidAmount: +amountStr, bidPrice: +priceStr }
+      this.orderbook.bid = { bidAmount: +amountStr, bidPrice: +priceStr }
     }
   }
 
@@ -155,14 +223,14 @@ class XchgConnect {
       symbol: this.pair,
       limit: 1
     }
-    const ordebookInfo = await this.rest.getOrderBook(params)
-    this.setOrderbook(ordebookInfo.result)
-    this.lastOrdebookMsgMts = Date.now()
+    const orderbookInfo = await this.rest.getOrderBook(params)
+    this.setOrderbook(orderbookInfo.result)
+    this.lastOrderbookMsgMts = Date.now()
   }
 
   manageOrderbookMsg (msg) {
     this.setOrderbook(msg.data)
-    this.lastOrdebookMsgMts = msg.ts
+    this.lastOrderbookMsgMts = msg.ts
   }
 
   async updatePairTradingInfo () {
@@ -181,7 +249,7 @@ class XchgConnect {
     try {
       await this.rest.repay(params)
     } catch (error) {
-      logger('error', true, error)
+      this.logger('error', true, error)
     }
   }
 
@@ -203,11 +271,11 @@ class XchgConnect {
   }
 
   getLastOrderbook () {
-    if (Date.now() - this.lastOrdebookMsgMts > 600000) { // 10 min delay.
+    if (Date.now() - this.lastOrderbookMsgMts > 600000) { // 10 min delay.
       this.logger('error', true, 'NO ORDERBOOKS UPDATES.')
       process.exit('2')
     }
-    return this.ordebook
+    return this.orderbook
   }
 
   submitMarketOrder ({ side, amount }) {
@@ -220,6 +288,31 @@ class XchgConnect {
       qty: amount.toString()
     }
     this.tradeWS.createOrder(order)
+  }
+
+  submitLimitOrder ({ side, amount, price }) {
+    const order = {
+      category: 'spot',
+      symbol: this.pair,
+      isLeverage: 1,
+      side,
+      orderType: 'Limit',
+      qty: amount.toString(),
+      price: price.toString()
+    }
+    this.tradeWS.createOrder(order)
+  }
+
+  updateLimitOrder (order, updateParams) {
+    const { category, symbol, orderId } = order
+    const updateArgs = { category, symbol, orderId, ...updateParams }
+    this.tradeWS.updateOrder(updateArgs)
+  }
+
+  cancelLimitOrder (order) {
+    const { category, symbol, orderId } = order
+    this.logger('log', true, 'Canceling:', order)
+    this.tradeWS.cancelOrder({ category, symbol, orderId })
   }
 }
 

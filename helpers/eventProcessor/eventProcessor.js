@@ -9,51 +9,79 @@ class EventProcessor extends XchgConnect {
     super(keys, inputParams)
     this.strategy = new Strategy(inputParams)
     this.tradeTimeout = null // Check orders in every interval.
+    this.intervalCount = 0 // Used to update exchange data.
   }
 
   async initTradingData () {
     await this.updateWallets()
     await this.updateCandles()
     await this.updateOrderbook()
+    await this.updateLimitOrders()
     const tradingInfo = await this.updatePairTradingInfo()
     this.strategy.setTradingInfo(tradingInfo)
   }
 
-  repayLiabilityIfNecessary (wallet) {
-    // Repay liability in case amount smaller than min order amount.
-    // Happens in asset borrowings when close order bot fullfilled.
-    const borrowed = Math.abs(
-      +wallet.coinsToWallet[this.asset].borrowAmount
-    )
-    const minOrderQty = +this.tradingInfo.lotSizeFilter.minOrderQty
-    if (borrowed > 0 && borrowed < minOrderQty) {
-      this.logger('log', true, `REPAY: ${borrowed}`)
-      this.repayLiability()
-    }
-  }
-
   resetCheckTimeout () {
     clearTimeout(this.tradeTimeout)
-    this.tradeTimeout = setTimeout(() => {
+    this.tradeTimeout = setTimeout(async () => {
+      if (this.intervalCount >= 6) {
+        this.intervalCount = 0
+        try {
+          await this.updateLimitOrders()
+        } catch (e) {
+          this.logger('error', true, 'Interval error:', e.message, e.stack)
+        }
+      }
+      this.intervalCount++
       this.checkOrders('Interval check.')
     }, Math.floor((Math.random() * (12 - 8) + 8)) * 1000) // 8 to 12 seconds.
   }
 
-  checkOrders (input) {
+  createOpenOrder (openOrderInfo, orderbook) {
+    const msg = ['NEW OPEN ORDER INFO:', openOrderInfo, '\nob:', orderbook]
+    this.logger('log', true, ...msg)
+    this.submitMarketOrder(openOrderInfo)
+  }
+
+  verifyCloseOrder (closeOrderInfo, orderbook) {
+    const { side, amount, price } = closeOrderInfo
+    if (amount < +this.tradingInfo.lotSizeFilter.minOrderQty) {
+      this.logger('log', true, `REPAY: ${amount}`)
+      return this.repayLiability()
+    }
+    if (!this.closeOrder) {
+      const n = ['NEW CLOSE ORDER INFO:', closeOrderInfo, '\nob:', orderbook]
+      this.logger('log', true, ...n)
+      return this.submitLimitOrder(closeOrderInfo)
+    }
+    if (side !== this.closeOrder.side) {
+      const c = ['WRONG ORDER SIDE:', this.closeOrder, closeOrderInfo]
+      this.logger('log', 'error', ...c)
+      return this.cancelLimitOrder(this.closeOrder) // Just in case.
+    }
+    const updateParams = {}
+    if (amount !== +this.closeOrder.qty) updateParams.qty = amount.toString()
+    if (price !== +this.closeOrder.price) updateParams.price = price.toString()
+    if (Object.keys(updateParams).length) {
+      const m = ['UPDATE CLOSE ORDER INFO:', closeOrderInfo, '\nob:', orderbook]
+      this.logger('log', true, ...m)
+      return this.updateLimitOrder(this.closeOrder, updateParams)
+    }
+  }
+
+  checkOrders () {
     try {
-      const ordebook = this.getLastOrderbook()
+      const orderbook = this.getLastOrderbook()
       const candles = this.getLastCandles()
       const wallet = this.getLastWallet()
-      const orderInfo = this.strategy.getOrderNeededData(
-        wallet,
-        ordebook,
-        candles
-      )
-      if (!orderInfo) return this.repayLiabilityIfNecessary(wallet)
-      this.logger('log', true, 'NEW ORDER INFO:', orderInfo, '\nob:', ordebook)
-      this.submitMarketOrder(orderInfo)
-    } catch (error) {
-      this.logger('log', 'error', error)
+      const {
+        openOrderInfo,
+        closeOrderInfo
+      } = this.strategy.getOrderNeededInfo(wallet, orderbook, candles)
+      if (openOrderInfo) return this.createOpenOrder(openOrderInfo, orderbook)
+      if (closeOrderInfo) this.verifyCloseOrder(closeOrderInfo, orderbook)
+    } catch (e) {
+      this.logger('error', true, 'Check orders error:', e.message, e.stack)
     } finally {
       this.resetCheckTimeout()
     }
