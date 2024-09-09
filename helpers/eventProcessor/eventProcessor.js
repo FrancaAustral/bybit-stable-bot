@@ -45,7 +45,7 @@ class EventProcessor extends XchgConnect {
 
   getUpdateQty (amount, order) {
     const amountBasePrec = 1 / +this.tradingInfo.lotSizeFilter.basePrecision
-    const baseAmount = order.cumExecQty + amount
+    const baseAmount = (+order.cumExecQty) + amount
     return Math.round(baseAmount * amountBasePrec) / amountBasePrec
   }
 

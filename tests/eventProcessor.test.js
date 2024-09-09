@@ -122,12 +122,12 @@ describe('Test on EventProcessor class.', function () {
     const tests = [
       {
         amount: 100,
-        order: { cumExecQty: 30 },
+        order: { cumExecQty: '30' },
         expected: 130
       },
       {
         amount: 100,
-        order: { cumExecQty: 10.1111111 },
+        order: { cumExecQty: '10.1111111' },
         expected: 110.11
       }
     ]
