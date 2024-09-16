@@ -43,6 +43,12 @@ class EventProcessor extends XchgConnect {
     this.submitMarketOrder(openOrderInfo)
   }
 
+  getUpdateQty (amount, order) {
+    const amountBasePrec = 1 / +this.tradingInfo.lotSizeFilter.basePrecision
+    const baseAmount = (+order.cumExecQty) + amount
+    return Math.round(baseAmount * amountBasePrec) / amountBasePrec
+  }
+
   verifyCloseOrder (closeOrderInfo, orderbook) {
     const { side, amount, price } = closeOrderInfo
     if (amount < +this.tradingInfo.lotSizeFilter.minOrderQty) {
@@ -60,7 +66,10 @@ class EventProcessor extends XchgConnect {
       return this.cancelLimitOrder(this.closeOrder) // Just in case.
     }
     const updateParams = {}
-    if (amount !== +this.closeOrder.qty) updateParams.qty = amount.toString()
+    if (amount !== +this.closeOrder.leavesQty) {
+      const qty = this.getUpdateQty(amount, this.closeOrder)
+      updateParams.qty = qty.toString()
+    }
     if (price !== +this.closeOrder.price) updateParams.price = price.toString()
     if (Object.keys(updateParams).length) {
       const m = ['UPDATE CLOSE ORDER INFO:', closeOrderInfo, '\nob:', orderbook]

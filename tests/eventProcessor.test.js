@@ -62,7 +62,7 @@ describe('Test on EventProcessor class.', function () {
     // Data.
     const neededMethods = [
       'constructor', 'initTradingData', 'resetCheckTimeout', 'createOpenOrder',
-      'verifyCloseOrder', 'checkOrders'
+      'getUpdateQty', 'verifyCloseOrder', 'checkOrders'
     ]
 
     // Assertions.
@@ -113,6 +113,33 @@ describe('Test on EventProcessor class.', function () {
     stub.restore()
   })
 
+  it('Method getUpdateQty should get order qty', function () {
+    // Data.
+    processor.tradingInfo = {
+      lotSizeFilter: { basePrecision: '0.01' },
+      priceFilter: { tickSize: '0.0001' }
+    }
+    const tests = [
+      {
+        amount: 100,
+        order: { cumExecQty: '30' },
+        expected: 130
+      },
+      {
+        amount: 100,
+        order: { cumExecQty: '10.1111111' },
+        expected: 110.11
+      }
+    ]
+
+    // Assertions.
+    for (const test of tests) {
+      const output = processor.getUpdateQty(test.amount, test.order)
+      assert.deepStrictEqual(output, test.expected)
+    }
+    processor.tradingInfo = null
+  })
+
   it('Method verifyCloseOrder should repay, create, cancel or update order.',
     function () {
       // Data.
@@ -141,7 +168,7 @@ describe('Test on EventProcessor class.', function () {
         },
         {
           closeOrderInfo: { side: 'Sell', amount: 2, price: 1 },
-          closeOrder: { side: 'Buy', qty: 2, price: 1 },
+          closeOrder: { side: 'Buy', qty: 2, leavesQty: 2, price: 1 },
           repayCalled: false,
           submitCalled: false,
           cancelCalled: true,
@@ -151,7 +178,7 @@ describe('Test on EventProcessor class.', function () {
         },
         {
           closeOrderInfo: { side: 'Sell', amount: 2.1, price: 1 },
-          closeOrder: { side: 'Sell', qty: 2, price: 1 },
+          closeOrder: { side: 'Sell', qty: 2, leavesQty: 2, price: 1 },
           repayCalled: false,
           submitCalled: false,
           cancelCalled: false,
@@ -161,7 +188,7 @@ describe('Test on EventProcessor class.', function () {
         },
         {
           closeOrderInfo: { side: 'Sell', amount: 2, price: 1.0001 },
-          closeOrder: { side: 'Sell', qty: 2, price: 1 },
+          closeOrder: { side: 'Sell', qty: 2, leavesQty: 2, price: 1 },
           repayCalled: false,
           submitCalled: false,
           cancelCalled: false,
@@ -171,7 +198,7 @@ describe('Test on EventProcessor class.', function () {
         },
         {
           closeOrderInfo: { side: 'Sell', amount: 2.1, price: 1.0001 },
-          closeOrder: { side: 'Sell', qty: 2, price: 1 },
+          closeOrder: { side: 'Sell', qty: 2, leavesQty: 2, price: 1 },
           repayCalled: false,
           submitCalled: false,
           cancelCalled: false,
@@ -181,7 +208,7 @@ describe('Test on EventProcessor class.', function () {
         },
         {
           closeOrderInfo: { side: 'Sell', amount: 2, price: 1 },
-          closeOrder: { side: 'Sell', qty: 2, price: 1 },
+          closeOrder: { side: 'Sell', qty: 2, leavesQty: 2, price: 1 },
           repayCalled: false,
           submitCalled: false,
           cancelCalled: false,
@@ -198,10 +225,12 @@ describe('Test on EventProcessor class.', function () {
         const stubRepay = sinon.stub(processor, 'repayLiability')
         const stubSubmit = sinon.stub(processor, 'submitLimitOrder')
         const stubCancel = sinon.stub(processor, 'cancelLimitOrder')
+        const stubGetQty = sinon.stub(processor, 'getUpdateQty')
         const stubUpdate = sinon.stub(processor, 'updateLimitOrder')
         stubRepay.returns('Repayed')
         stubSubmit.returns('Submited')
         stubCancel.returns('Canceled')
+        stubGetQty.returns(test.closeOrderInfo.amount)
         stubUpdate.returns('Updated')
 
         const output = processor.verifyCloseOrder(
@@ -227,6 +256,7 @@ describe('Test on EventProcessor class.', function () {
         stubRepay.restore()
         stubSubmit.restore()
         stubCancel.restore()
+        stubGetQty.restore()
         stubUpdate.restore()
       }
 
