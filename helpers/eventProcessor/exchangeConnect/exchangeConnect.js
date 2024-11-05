@@ -63,8 +63,8 @@ class XchgConnect {
   }
 
   setWallet (w) {
-    const { totalMarginBalance: mBce, totalAvailableBalance: aBce } = w
-    this.logger('log', true, `WU: marginBce: ${mBce} availableBce: ${aBce}`)
+    const { totalEquity: mBce, totalAvailableBalance: aBce } = w
+    this.logger('log', true, `WU: totalBce: ${mBce} availableBce: ${aBce}`)
     const coinsToWallet = w.coin.reduce((prev, curr) => {
       const { coin, walletBalance: balance, borrowAmount } = curr
       if (!this.walletCoins.includes(coin)) return prev
