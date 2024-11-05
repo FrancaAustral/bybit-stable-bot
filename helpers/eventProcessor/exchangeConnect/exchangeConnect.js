@@ -133,14 +133,14 @@ class XchgConnect {
       limit: 50
     }
     const ordersResponse = await this.rest.getOrders(params)
-    return ordersResponse.result.list.map((o) => {
+    return ordersResponse.result.list?.map((o) => {
       return { category: 'spot', ...o } // Response missing 'category'.
     })
   }
 
   async updateLimitOrders () {
     const orders = await this.getLimitOrders()
-    if (orders.length > 1) {
+    if (orders?.length > 1) {
       const canceled = await this.rest.cancelAllOrders({
         category: 'spot',
         symbol: this.pair
@@ -152,7 +152,7 @@ class XchgConnect {
         canceled.result.list.map((o) => o.orderId)
       )
     }
-    orders.forEach((o) => this.storeLimitOrder(o, 'closeOrder'))
+    if (orders) orders.forEach((o) => this.storeLimitOrder(o, 'closeOrder'))
   }
 
   storeCandle (candle) {
