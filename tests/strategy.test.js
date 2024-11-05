@@ -267,29 +267,15 @@ describe('Test on Strategy class.', function () {
       const tests = [
         {
           wallet: {
-            coinsToWallet: { USDC: { usdValue: '-10' } },
-            totalMarginBalance: '10'
+            coinsToWallet: { USDC: { usdValue: '-100' } },
+            totalEquity: '19'
           },
           expected: 9
         },
         {
           wallet: {
-            coinsToWallet: { USDC: { usdValue: '0' } },
-            totalMarginBalance: '10'
-          },
-          expected: 10
-        },
-        {
-          wallet: {
-            coinsToWallet: { USDC: { usdValue: '100' } },
-            totalMarginBalance: '10'
-          },
-          expected: 0
-        },
-        {
-          wallet: {
-            coinsToWallet: { USDC: { usdValue: '-101' } },
-            totalMarginBalance: '10'
+            coinsToWallet: { USDC: { usdValue: '-1010' } },
+            totalEquity: '100'
           },
           expected: 0
         }

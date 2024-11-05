@@ -61,12 +61,11 @@ class Strategy {
   }
 
   calcCurrencyAvailable (wallet) {
-    // Get ratio un usd equivalent and apply it to balance.
-    const { coinsToWallet, totalMarginBalance } = wallet
-    const assetUsdEq = Math.abs(+coinsToWallet[this.asset].usdValue)
-    const maxUsdEqToTrade = +totalMarginBalance * this.leverage
-    const availableRatio = (maxUsdEqToTrade - assetUsdEq) / maxUsdEqToTrade
-    return Math.max(availableRatio * totalMarginBalance, 0)
+    // Get ratio in usd equivalent and apply it to balance.
+    const { coinsToWallet, totalEquity } = wallet
+    const assetInUsd = +coinsToWallet[this.asset].usdValue
+    const assetUsdEq = Math.abs(assetInUsd) / this.leverage
+    return Math.max(+totalEquity - assetUsdEq, 0)
   }
 
   getOpenBuyOrderInfo (currencyAvailable, orderbook) {
