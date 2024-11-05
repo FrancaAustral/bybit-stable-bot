@@ -304,32 +304,51 @@ describe('Test on Strategy class.', function () {
       {
         currencyAvailable: 10.1,
         orderbook: { ask: { askPrice: 1.01, askAmount: 10000 } },
+        maxTradesInfo: { buy: { maxTradeQty: 120 } },
         openBuyPrice: 1,
         expected: false
       },
       {
         currencyAvailable: 0.099,
         orderbook: { ask: { askPrice: 1, askAmount: 1000 } },
+        maxTradesInfo: { buy: { maxTradeQty: 120 } },
         openBuyPrice: 1,
         expected: false
       },
       {
         currencyAvailable: 10.1,
         orderbook: { ask: { askPrice: 1, askAmount: 1 } },
+        maxTradesInfo: { buy: { maxTradeQty: 120 } },
         openBuyPrice: 1,
         expected: false
       },
       {
         currencyAvailable: 10.1,
         orderbook: { ask: { askPrice: 1, askAmount: 4.44444 } },
+        maxTradesInfo: { buy: { maxTradeQty: 120 } },
         openBuyPrice: 1,
         expected: { type: 'openBuyOrder', side: 'Buy', amount: 3.33 }
       },
       {
+        currencyAvailable: 10.1,
+        orderbook: { ask: { askPrice: 1, askAmount: 1000 } },
+        maxTradesInfo: { buy: { maxTradeQty: 5 } },
+        openBuyPrice: 1,
+        expected: { type: 'openBuyOrder', side: 'Buy', amount: 4.75 }
+      },
+      {
         currencyAvailable: 1.01,
         orderbook: { ask: { askPrice: 1, askAmount: 100000 } },
+        maxTradesInfo: { buy: { maxTradeQty: 120 } },
         openBuyPrice: 1.01,
         expected: { type: 'openBuyOrder', side: 'Buy', amount: 10.1 }
+      },
+      {
+        currencyAvailable: 1.01,
+        orderbook: { ask: { askPrice: 1, askAmount: 100000 } },
+        maxTradesInfo: { buy: {} },
+        openBuyPrice: 1.01,
+        expected: false
       }
     ]
 
@@ -337,6 +356,7 @@ describe('Test on Strategy class.', function () {
     for (const test of tests) {
       const stub = sinon.stub(strategy.bollinger, 'getBollingerPrices')
       stub.returns({ openBuyPrice: test.openBuyPrice })
+      strategy.maxTradesInfo = test.maxTradesInfo
       const output = strategy.getOpenBuyOrderInfo(
         test.currencyAvailable,
         test.orderbook
@@ -344,6 +364,7 @@ describe('Test on Strategy class.', function () {
       assert.deepStrictEqual(output, test.expected)
 
       // Restores.
+      strategy.maxTradesInfo = { buy: {}, sell: {} }
       stub.restore()
     }
     strategy.leverage = mockParams.leverage
@@ -360,32 +381,51 @@ describe('Test on Strategy class.', function () {
       {
         currencyAvailable: 10.1,
         orderbook: { bid: { bidPrice: 0.99, bidAmount: 10000 } },
+        maxTradesInfo: { sell: { maxTradeQty: 120 } },
         openSellPrice: 1,
         expected: false
       },
       {
         currencyAvailable: 0.099,
         orderbook: { bid: { bidPrice: 1, bidAmount: 1000 } },
+        maxTradesInfo: { sell: { maxTradeQty: 120 } },
         openSellPrice: 1,
         expected: false
       },
       {
         currencyAvailable: 10.1,
         orderbook: { bid: { bidPrice: 1, bidAmount: 1 } },
+        maxTradesInfo: { sell: { maxTradeQty: 120 } },
         openSellPrice: 1,
         expected: false
       },
       {
         currencyAvailable: 10.1,
         orderbook: { bid: { bidPrice: 1, bidAmount: 4.44444 } },
+        maxTradesInfo: { sell: { maxTradeQty: 120 } },
         openSellPrice: 1,
         expected: { type: 'openSellOrder', side: 'Sell', amount: 3.33 }
       },
       {
+        currencyAvailable: 10.1,
+        orderbook: { bid: { bidPrice: 1, bidAmount: 1000 } },
+        maxTradesInfo: { sell: { maxTradeQty: 5 } },
+        openSellPrice: 1,
+        expected: { type: 'openSellOrder', side: 'Sell', amount: 4.75 }
+      },
+      {
         currencyAvailable: 1.01,
         orderbook: { bid: { bidPrice: 1, bidAmount: 100000 } },
+        maxTradesInfo: { sell: { maxTradeQty: 120 } },
         openSellPrice: 0.99,
         expected: { type: 'openSellOrder', side: 'Sell', amount: 10.1 }
+      },
+      {
+        currencyAvailable: 1.01,
+        orderbook: { bid: { bidPrice: 1, bidAmount: 100000 } },
+        maxTradesInfo: { sell: {} },
+        openSellPrice: 0.99,
+        expected: false
       }
     ]
 
@@ -393,6 +433,7 @@ describe('Test on Strategy class.', function () {
     for (const test of tests) {
       const stub = sinon.stub(strategy.bollinger, 'getBollingerPrices')
       stub.returns({ openSellPrice: test.openSellPrice })
+      strategy.maxTradesInfo = test.maxTradesInfo
       const output = strategy.getOpenSellOrderInfo(
         test.currencyAvailable,
         test.orderbook
@@ -400,6 +441,7 @@ describe('Test on Strategy class.', function () {
       assert.deepStrictEqual(output, test.expected)
 
       // Restores.
+      strategy.maxTradesInfo = { buy: {}, sell: {} }
       stub.restore()
     }
     strategy.leverage = mockParams.leverage

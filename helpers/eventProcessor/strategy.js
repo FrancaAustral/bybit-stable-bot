@@ -74,7 +74,8 @@ class Strategy {
     if (askPrice > openBuyPrice) return false
     const baseAmount = Math.min(
       currencyAvailable / askPrice * this.leverage,
-      askAmount * 0.75
+      askAmount * 0.75,
+      +this.maxTradesInfo.buy?.maxTradeQty * 0.95 || 0
     )
     const amountBasePrec = 1 / +this.tradingInfo.lotSizeFilter.basePrecision
     const amount = Math.round(baseAmount * amountBasePrec) / amountBasePrec
@@ -88,7 +89,8 @@ class Strategy {
     if (bidPrice < openSellPrice) return false
     const baseAmount = Math.min(
       currencyAvailable / bidPrice * this.leverage,
-      bidAmount * 0.75
+      bidAmount * 0.75,
+      +this.maxTradesInfo.sell?.maxTradeQty * 0.95 || 0
     )
     const amountBasePrec = 1 / +this.tradingInfo.lotSizeFilter.basePrecision
     const amount = Math.round(baseAmount * amountBasePrec) / amountBasePrec
