@@ -43,6 +43,7 @@ class XchgConnect {
     this.orderbook = { bid: {}, ask: {} }
     this.candles = []
     this.tradingInfo = {}
+    this.maxTradesInfo = { buy: {}, sell: {} }
     this.closeOrder = null
 
     this.lastCandleMsgMts = 0
@@ -242,6 +243,25 @@ class XchgConnect {
     const instrumentInfo = await this.rest.getInstrumentInfo(params)
     this.tradingInfo = instrumentInfo.result.list[0]
     return this.tradingInfo
+  }
+
+  async updateMaxTradesInfo () {
+    const buyInfo = await this.rest.getMaxTradeLimits({
+      category: 'spot',
+      symbol: this.pair,
+      side: 'Buy'
+    })
+
+    const sellInfo = await this.rest.getMaxTradeLimits({
+      category: 'spot',
+      symbol: this.pair,
+      side: 'Sell'
+    })
+
+    if (buyInfo?.retMsg === 'OK') this.maxTradesInfo.buy = buyInfo.result
+    if (sellInfo?.retMsg === 'OK') this.maxTradesInfo.sell = sellInfo.result
+
+    return this.maxTradesInfo
   }
 
   async repayLiability () {
