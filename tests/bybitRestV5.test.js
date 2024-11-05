@@ -44,8 +44,8 @@ describe('Test on RestV5Module class.', function () {
     // Data.
     const neededMethods = [
       'constructor', 'request', 'getCandles', 'getInstrumentInfo',
-      'getOrderBook', 'getWalletBalance', 'getOrders', 'cancelAllOrders',
-      'repay'
+      'getOrderBook', 'getWalletBalance', 'getMaxTradeLimits', 'getOrders',
+      'cancelAllOrders', 'repay'
     ]
 
     // Assertions.
@@ -175,6 +175,17 @@ describe('Test on RestV5Module class.', function () {
     assert.strictEqual(output, 'response')
     assert(
       stub.calledOnceWithExactly('/account/wallet-balance', 'GET', 'params')
+    )
+    stub.restore()
+  })
+
+  it('Method getMaxTradeLimits should GET wallet endpoint.', function () {
+    const stub = sinon.stub(restV5, 'request')
+    stub.returns('response')
+    const output = restV5.getMaxTradeLimits('params')
+    assert.strictEqual(output, 'response')
+    assert(
+      stub.calledOnceWithExactly('/order/spot-borrow-check', 'GET', 'params')
     )
     stub.restore()
   })

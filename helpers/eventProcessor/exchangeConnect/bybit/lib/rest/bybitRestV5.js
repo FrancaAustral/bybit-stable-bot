@@ -64,6 +64,10 @@ class BybitRestV5 {
     return this.request('/account/wallet-balance', 'GET', params)
   }
 
+  getMaxTradeLimits (params) {
+    return this.request('/order/spot-borrow-check', 'GET', params)
+  }
+
   getOrders (params) {
     return this.request('/order/realtime', 'GET', params)
   }
