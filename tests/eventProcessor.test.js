@@ -11,7 +11,7 @@ const processorModule = rewire('../helpers/eventProcessor/eventProcessor')
 const XchgConnect = processorModule.__get__('XchgConnect')
 
 class MockStrategy {
-  setTradingInfo () {}
+  setAttributesValue () {}
   getOrderNeededInfo () {}
 }
 processorModule.__set__('Strategy', MockStrategy)
@@ -61,8 +61,8 @@ describe('Test on EventProcessor class.', function () {
   it('Should have all needed methods.', function () {
     // Data.
     const neededMethods = [
-      'constructor', 'initTradingData', 'resetCheckTimeout', 'createOpenOrder',
-      'getUpdateQty', 'verifyCloseOrder', 'checkOrders'
+      'constructor', 'initTradingData', 'updateTradeData', 'resetCheckTimeout',
+      'createOpenOrder', 'getUpdateQty', 'verifyCloseOrder', 'checkOrders'
     ]
 
     // Assertions.
@@ -84,9 +84,11 @@ describe('Test on EventProcessor class.', function () {
     const stubOrderbook = sinon.stub(processor, 'updateOrderbook')
     const stubOrder = sinon.stub(processor, 'updateLimitOrders')
     const stubInfo = sinon.stub(processor, 'updatePairTradingInfo')
-    const stubSet = sinon.stub(processor.strategy, 'setTradingInfo')
+    const stubMax = sinon.stub(processor, 'updateMaxTradesInfo')
+    const stubSet = sinon.stub(processor.strategy, 'setAttributesValue')
 
     stubInfo.returns('TradingInfo')
+    stubMax.returns('MaxTradesInfo')
 
     // Assertions.
     await processor.initTradingData()
@@ -95,7 +97,10 @@ describe('Test on EventProcessor class.', function () {
     assert(stubOrderbook.calledOnceWithExactly())
     assert(stubOrder.calledOnceWithExactly())
     assert(stubInfo.calledOnceWithExactly())
-    assert(stubSet.calledOnceWithExactly('TradingInfo'))
+    assert(stubSet.calledOnceWithExactly({
+      tradingInfo: 'TradingInfo',
+      maxTradesInfo: 'MaxTradesInfo'
+    }))
 
     // Restores.
     stubWallets.restore()
@@ -103,8 +108,57 @@ describe('Test on EventProcessor class.', function () {
     stubOrderbook.restore()
     stubOrder.restore()
     stubInfo.restore()
+    stubMax.restore()
     stubSet.restore()
   })
+
+  it('Method updateTradeData should update tradesInfo and orders if count 6.',
+    async function () {
+      // Data.
+      processor.intervalCount = 6
+      const stubMax = sinon.stub(processor, 'updateMaxTradesInfo')
+      const stubSet = sinon.stub(processor.strategy, 'setAttributesValue')
+      const stubOrder = sinon.stub(processor, 'updateLimitOrders')
+      stubMax.returns('MaxTradesInfo')
+
+      // Assertions.
+      await processor.updateTradeData()
+      assert.strictEqual(processor.intervalCount, 0)
+      assert(stubMax.calledOnceWithExactly())
+      assert(stubSet.calledOnceWithExactly({ maxTradesInfo: 'MaxTradesInfo' }))
+      assert(stubOrder.calledOnceWithExactly())
+
+      // Restores.
+      processor.intervalCount = 0
+      stubMax.restore()
+      stubSet.restore()
+      stubOrder.restore()
+    }
+  )
+
+  it('Method updateTradeData should update tradesInfo if count < 6.',
+    async function () {
+      // Data.
+      processor.intervalCount = 5
+      const stubMax = sinon.stub(processor, 'updateMaxTradesInfo')
+      const stubSet = sinon.stub(processor.strategy, 'setAttributesValue')
+      const stubOrder = sinon.stub(processor, 'updateLimitOrders')
+      stubMax.returns('MaxTradesInfo')
+
+      // Assertions.
+      await processor.updateTradeData()
+      assert.strictEqual(processor.intervalCount, 5)
+      assert(stubMax.calledOnceWithExactly())
+      assert(stubSet.calledOnceWithExactly({ maxTradesInfo: 'MaxTradesInfo' }))
+      assert(stubOrder.notCalled)
+
+      // Restores.
+      processor.intervalCount = 0
+      stubMax.restore()
+      stubSet.restore()
+      stubOrder.restore()
+    }
+  )
 
   it('Method createOpenOrder should submit market order.', function () {
     const stub = sinon.stub(processor, 'submitMarketOrder')

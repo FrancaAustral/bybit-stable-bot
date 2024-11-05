@@ -18,22 +18,29 @@ class EventProcessor extends XchgConnect {
     await this.updateOrderbook()
     await this.updateLimitOrders()
     const tradingInfo = await this.updatePairTradingInfo()
-    this.strategy.setTradingInfo(tradingInfo)
+    const maxTradesInfo = await this.updateMaxTradesInfo()
+    this.strategy.setAttributesValue({ tradingInfo, maxTradesInfo })
+  }
+
+  async updateTradeData () {
+    const maxTradesInfo = await this.updateMaxTradesInfo()
+    this.strategy.setAttributesValue({ maxTradesInfo })
+    if (this.intervalCount >= 6) {
+      this.intervalCount = 0
+      await this.updateLimitOrders()
+    }
   }
 
   resetCheckTimeout () {
     clearTimeout(this.tradeTimeout)
     this.tradeTimeout = setTimeout(async () => {
-      if (this.intervalCount >= 6) {
-        this.intervalCount = 0
-        try {
-          await this.updateLimitOrders()
-        } catch (e) {
-          this.logger('error', true, 'Interval error:', e.message, e.stack)
-        }
+      try {
+        await this.updateTradeData()
+      } catch (e) {
+        this.logger('error', true, 'Interval error:', e.message, e.stack)
       }
       this.intervalCount++
-      this.checkOrders('Interval check.')
+      this.checkOrders()
     }, Math.floor((Math.random() * (12 - 8) + 8)) * 1000) // 8 to 12 seconds.
   }
 
