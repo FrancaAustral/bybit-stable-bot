@@ -55,6 +55,7 @@ describe('Test on Strategy class.', function () {
     assert.strictEqual(strategy.maxBuyPrice, 1.0002)
     assert.strictEqual(strategy.leverage, 10)
     assert.strictEqual(strategy.tradingInfo, null)
+    assert.deepStrictEqual(strategy.maxTradesInfo, { buy: {}, sell: {} })
     assert(strategy.bollinger instanceof MockBollinger)
   })
 

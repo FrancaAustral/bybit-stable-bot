@@ -8,6 +8,7 @@ class Strategy {
     this.initStrategyParams(inputParams)
     this.bollinger = new Bollinger(inputParams)
     this.tradingInfo = null // Bybit limitations for trading pair.
+    this.maxTradesInfo = { buy: {}, sell: {} } // From rest endpoint.
   }
 
   initStrategyParams (inputParams) {
