@@ -21,8 +21,10 @@ class Strategy {
     this.leverage = inputParams.leverage
   }
 
-  setTradingInfo (tradingInfo) {
-    this.tradingInfo = tradingInfo
+  setAttributesValue (attributesToValue) {
+    for (const [attribute, value] of Object.entries(attributesToValue)) {
+      this[attribute] = value
+    }
   }
 
   getCloseSellOrderInfo (assetBalance) {

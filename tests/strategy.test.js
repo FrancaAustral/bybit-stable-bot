@@ -61,7 +61,7 @@ describe('Test on Strategy class.', function () {
   it('Should have all needed methods.', function () {
     // Data.
     const neededMethods = [
-      'constructor', 'initStrategyParams', 'setTradingInfo',
+      'constructor', 'initStrategyParams', 'setAttributesValue',
       'getCloseSellOrderInfo', 'getCloseBuyOrderInfo', 'getCloseOrderInfo',
       'calcCurrencyAvailable', 'getOpenBuyOrderInfo', 'getOpenSellOrderInfo',
       'getOpenOrderInfo', 'getOrderNeededInfo'
@@ -79,9 +79,9 @@ describe('Test on Strategy class.', function () {
     }
   })
 
-  it('Method setTradingInfo should set value.', function () {
+  it('Method setAttributesValue should set attribute value.', function () {
     strategy.tradingInfo = null
-    const mockTradingInfo = {
+    const tradingInfo = {
       symbol: 'USDCUSDT',
       baseCoin: 'USDC',
       quoteCoin: 'USDT',
@@ -99,8 +99,8 @@ describe('Test on Strategy class.', function () {
       priceFilter: { tickSize: '0.0001' },
       riskParameters: { limitParameter: '0.01', marketParameter: '0.01' }
     }
-    strategy.setTradingInfo(mockTradingInfo)
-    assert.deepStrictEqual(strategy.tradingInfo, mockTradingInfo)
+    strategy.setAttributesValue({ tradingInfo })
+    assert.deepStrictEqual(strategy.tradingInfo, tradingInfo)
     strategy.tradingInfo = null
   })
 
