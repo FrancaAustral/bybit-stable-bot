@@ -88,6 +88,7 @@ class EventProcessor extends XchgConnect {
   checkOrders () {
     try {
       const orderbook = this.getLastOrderbook()
+      if (!orderbook) return false
       const candles = this.getLastCandles()
       const wallet = this.getLastWallet()
       const {

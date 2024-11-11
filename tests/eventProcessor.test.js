@@ -323,36 +323,59 @@ describe('Test on EventProcessor class.', function () {
       // Data.
       const tests = [
         {
+          orderbook: 'Orderbook',
           ordersInfo: {
             openOrderInfo: null,
             closeOrderInfo: null
           },
+          candlesCall: true,
+          walletCall: true,
           createCall: false,
           verifyCall: false
         },
         {
+          orderbook: 'Orderbook',
           ordersInfo: {
             openOrderInfo: 'OpenOrderInfo',
             closeOrderInfo: null
           },
+          candlesCall: true,
+          walletCall: true,
           createCall: true,
           verifyCall: false
         },
         {
+          orderbook: 'Orderbook',
           ordersInfo: {
             openOrderInfo: 'OpenOrderInfo',
             closeOrderInfo: 'CloseOrderInfo'
           },
+          candlesCall: true,
+          walletCall: true,
           createCall: true,
           verifyCall: false
         },
         {
+          orderbook: 'Orderbook',
           ordersInfo: {
             openOrderInfo: null,
             closeOrderInfo: 'CloseOrderInfo'
           },
+          candlesCall: true,
+          walletCall: true,
           createCall: false,
           verifyCall: true
+        },
+        {
+          orderbook: null,
+          ordersInfo: {
+            openOrderInfo: 'OpenOrderInfo',
+            closeOrderInfo: 'CloseOrderInfo'
+          },
+          candlesCall: false,
+          walletCall: false,
+          createCall: false,
+          verifyCall: false
         }
       ]
 
@@ -366,17 +389,21 @@ describe('Test on EventProcessor class.', function () {
         const stubVerify = sinon.stub(processor, 'verifyCloseOrder')
         const stubReset = sinon.stub(processor, 'resetCheckTimeout')
 
-        stubOrderbook.returns('Orderbook')
+        stubOrderbook.returns(test.orderbook)
         stubCandles.returns('Candles')
         stubWallet.returns('Wallet')
         stubInfo.returns(test.ordersInfo)
 
         processor.checkOrders()
         assert(stubOrderbook.calledOnceWithExactly())
-        assert(stubCandles.calledOnceWithExactly())
-        assert(stubWallet.calledOnceWithExactly())
-        assert(
-          stubInfo.calledOnceWithExactly('Wallet', 'Orderbook', 'Candles')
+        assert.strictEqual(
+          stubCandles.calledOnceWithExactly(),
+          test.candlesCall
+        )
+        assert.strictEqual(stubWallet.calledOnceWithExactly(), test.walletCall)
+        assert.strictEqual(
+          stubInfo.calledOnceWithExactly('Wallet', 'Orderbook', 'Candles'),
+          (test.candlesCall && test.walletCall)
         )
         assert.strictEqual(
           stubCreate.calledOnceWithExactly('OpenOrderInfo', 'Orderbook'),

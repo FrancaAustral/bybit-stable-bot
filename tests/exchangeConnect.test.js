@@ -1000,15 +1000,30 @@ describe('Test on XchgConnect class.', function () {
 
   it('Method getLastOrderbook return last orderbook stored.', function () {
     // Data.
-    connect.orderbook = 'Orderbook'
     const tests = [
       {
+        orderbook: { bid: { bidPrice: 1.0001 }, ask: { askPrice: 1.0002 } },
         lastOrderbookMsgMts: 1000000,
         now: 1600000,
         exitCall: false,
-        expected: 'Orderbook'
+        expected: { bid: { bidPrice: 1.0001 }, ask: { askPrice: 1.0002 } }
       },
       {
+        orderbook: { bid: { bidPrice: 1.0001 }, ask: { askPrice: 1.0001 } },
+        lastOrderbookMsgMts: 1000000,
+        now: 1600000,
+        exitCall: false,
+        expected: null
+      },
+      {
+        orderbook: { bid: {}, ask: {} },
+        lastOrderbookMsgMts: 1000000,
+        now: 1600000,
+        exitCall: false,
+        expected: null
+      },
+      {
+        orderbook: 'Orderbook',
         lastOrderbookMsgMts: 1000000,
         now: 1600001,
         exitCall: true,
@@ -1018,6 +1033,7 @@ describe('Test on XchgConnect class.', function () {
 
     // Assertions.
     for (const test of tests) {
+      connect.orderbook = test.orderbook
       connect.lastOrderbookMsgMts = test.lastOrderbookMsgMts
       const stubDate = sinon.stub(Date, 'now')
       stubDate.returns(test.now)

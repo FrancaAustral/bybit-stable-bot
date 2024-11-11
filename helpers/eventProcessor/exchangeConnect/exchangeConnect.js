@@ -295,7 +295,9 @@ class XchgConnect {
       this.logger('error', true, 'NO ORDERBOOKS UPDATES.')
       process.exit('2')
     }
-    return this.orderbook
+    const { askPrice } = this.orderbook.ask
+    const { bidPrice } = this.orderbook.bid
+    return (askPrice > bidPrice) ? this.orderbook : null
   }
 
   submitMarketOrder ({ side, amount }) {
