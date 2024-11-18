@@ -43,6 +43,7 @@ class XchgConnect {
     this.orderbook = { bid: {}, ask: {} }
     this.candles = []
     this.tradingInfo = {}
+    this.maxTradesInfo = { buy: {}, sell: {} }
     this.closeOrder = null
 
     this.lastCandleMsgMts = 0
@@ -63,8 +64,8 @@ class XchgConnect {
   }
 
   setWallet (w) {
-    const { totalMarginBalance: mBce, totalAvailableBalance: aBce } = w
-    this.logger('log', true, `WU: marginBce: ${mBce} availableBce: ${aBce}`)
+    const { totalEquity: mBce, totalAvailableBalance: aBce } = w
+    this.logger('log', true, `WU: totalBce: ${mBce} availableBce: ${aBce}`)
     const coinsToWallet = w.coin.reduce((prev, curr) => {
       const { coin, walletBalance: balance, borrowAmount } = curr
       if (!this.walletCoins.includes(coin)) return prev
@@ -133,14 +134,14 @@ class XchgConnect {
       limit: 50
     }
     const ordersResponse = await this.rest.getOrders(params)
-    return ordersResponse.result.list.map((o) => {
+    return ordersResponse.result.list?.map((o) => {
       return { category: 'spot', ...o } // Response missing 'category'.
     })
   }
 
   async updateLimitOrders () {
     const orders = await this.getLimitOrders()
-    if (orders.length > 1) {
+    if (orders?.length > 1) {
       const canceled = await this.rest.cancelAllOrders({
         category: 'spot',
         symbol: this.pair
@@ -152,7 +153,7 @@ class XchgConnect {
         canceled.result.list.map((o) => o.orderId)
       )
     }
-    orders.forEach((o) => this.storeLimitOrder(o, 'closeOrder'))
+    if (orders) orders.forEach((o) => this.storeLimitOrder(o, 'closeOrder'))
   }
 
   storeCandle (candle) {
@@ -244,6 +245,25 @@ class XchgConnect {
     return this.tradingInfo
   }
 
+  async updateMaxTradesInfo () {
+    const buyInfo = await this.rest.getMaxTradeLimits({
+      category: 'spot',
+      symbol: this.pair,
+      side: 'Buy'
+    })
+
+    const sellInfo = await this.rest.getMaxTradeLimits({
+      category: 'spot',
+      symbol: this.pair,
+      side: 'Sell'
+    })
+
+    if (buyInfo?.retMsg === 'OK') this.maxTradesInfo.buy = buyInfo.result
+    if (sellInfo?.retMsg === 'OK') this.maxTradesInfo.sell = sellInfo.result
+
+    return this.maxTradesInfo
+  }
+
   async repayLiability () {
     const params = { coin: this.asset }
     try {
@@ -275,7 +295,9 @@ class XchgConnect {
       this.logger('error', true, 'NO ORDERBOOKS UPDATES.')
       process.exit('2')
     }
-    return this.orderbook
+    const { askPrice } = this.orderbook.ask
+    const { bidPrice } = this.orderbook.bid
+    return (askPrice > bidPrice) ? this.orderbook : null
   }
 
   submitMarketOrder ({ side, amount }) {

@@ -94,6 +94,7 @@ describe('Test on XchgConnect class.', function () {
     assert.deepStrictEqual(connect.orderbook, { bid: {}, ask: {} })
     assert.deepStrictEqual(connect.candles, [])
     assert.deepStrictEqual(connect.tradingInfo, {})
+    assert.deepStrictEqual(connect.maxTradesInfo, { buy: {}, sell: {} })
     assert.strictEqual(connect.closeOrder, null)
     assert.strictEqual(connect.lastCandleMsgMts, 0)
     assert.strictEqual(connect.lastOrderbookMsgMts, 0)
@@ -107,8 +108,8 @@ describe('Test on XchgConnect class.', function () {
       'removeLimitOrder', 'isCloseOrder', 'manageOrderMsg', 'getLimitOrders',
       'updateLimitOrders', 'storeCandle', 'updateCandles', 'manageCandleMsg',
       'setOrderbook', 'updateOrderbook', 'manageOrderbookMsg',
-      'updatePairTradingInfo', 'repayLiability', 'logWSMessage',
-      'getLastWallet', 'getLastCandles', 'getLastOrderbook',
+      'updatePairTradingInfo', 'updateMaxTradesInfo', 'repayLiability',
+      'logWSMessage', 'getLastWallet', 'getLastCandles', 'getLastOrderbook',
       'submitMarketOrder', 'submitLimitOrder', 'updateLimitOrder',
       'cancelLimitOrder'
     ]
@@ -834,6 +835,99 @@ describe('Test on XchgConnect class.', function () {
       stubGet.restore()
     })
 
+  it('Method updateMaxTradesInfo should get buy and sell limits and store.',
+    async function () {
+      // Data.
+      connect.maxTradesInfo = { buy: {}, sell: {} }
+
+      const stub = sinon.stub(connect.rest, 'getMaxTradeLimits')
+
+      stub.withArgs({
+        category: 'spot',
+        symbol: 'USDCUSDT',
+        side: 'Buy'
+      }).returns({ retMsg: 'OK', result: { info: 'buyInfo' } })
+
+      stub.withArgs({
+        category: 'spot',
+        symbol: 'USDCUSDT',
+        side: 'Sell'
+      }).returns({ retMsg: 'OK', result: { info: 'sellInfo' } })
+
+      // Assertions.
+      const output = await connect.updateMaxTradesInfo()
+      assert.deepStrictEqual(
+        output,
+        { buy: { info: 'buyInfo' }, sell: { info: 'sellInfo' } }
+      )
+      assert.deepStrictEqual(
+        stub.args,
+        [
+          [{
+            category: 'spot',
+            symbol: 'USDCUSDT',
+            side: 'Buy'
+          }],
+          [{
+            category: 'spot',
+            symbol: 'USDCUSDT',
+            side: 'Sell'
+          }]
+        ]
+      )
+
+      // Restores.
+      connect.maxTradesInfo = { buy: {}, sell: {} }
+      stub.restore()
+    })
+
+  it('Method updateMaxTradesInfo should ignore bad responses.',
+    async function () {
+      // Data.
+      connect.maxTradesInfo = { buy: {}, sell: {} }
+
+      const stub = sinon.stub(connect.rest, 'getMaxTradeLimits')
+
+      stub.withArgs({
+        category: 'spot',
+        symbol: 'USDCUSDT',
+        side: 'Buy'
+      }).returns({ retMsg: 'ERROR', result: { info: 'buyInfo' } })
+
+      stub.withArgs({
+        category: 'spot',
+        symbol: 'USDCUSDT',
+        side: 'Sell'
+      }).returns({ retMsg: 'ERROR', result: { info: 'sellInfo' } })
+
+      // Assertions.
+      const output = await connect.updateMaxTradesInfo()
+      assert.deepStrictEqual(
+        output,
+        { buy: {}, sell: {} }
+      )
+      assert.deepStrictEqual(
+        stub.args,
+        [
+          [{
+            category: 'spot',
+            symbol: 'USDCUSDT',
+            side: 'Buy'
+          }],
+          [{
+            category: 'spot',
+            symbol: 'USDCUSDT',
+            side: 'Sell'
+          }]
+        ]
+      )
+
+      // Restores.
+      connect.maxTradesInfo = { buy: {}, sell: {} }
+      stub.restore()
+    }
+  )
+
   it('Method repayLiability should rest repay.', async function () {
     const stub = sinon.stub(connect.rest, 'repay')
     await connect.repayLiability()
@@ -906,15 +1000,30 @@ describe('Test on XchgConnect class.', function () {
 
   it('Method getLastOrderbook return last orderbook stored.', function () {
     // Data.
-    connect.orderbook = 'Orderbook'
     const tests = [
       {
+        orderbook: { bid: { bidPrice: 1.0001 }, ask: { askPrice: 1.0002 } },
         lastOrderbookMsgMts: 1000000,
         now: 1600000,
         exitCall: false,
-        expected: 'Orderbook'
+        expected: { bid: { bidPrice: 1.0001 }, ask: { askPrice: 1.0002 } }
       },
       {
+        orderbook: { bid: { bidPrice: 1.0001 }, ask: { askPrice: 1.0001 } },
+        lastOrderbookMsgMts: 1000000,
+        now: 1600000,
+        exitCall: false,
+        expected: null
+      },
+      {
+        orderbook: { bid: {}, ask: {} },
+        lastOrderbookMsgMts: 1000000,
+        now: 1600000,
+        exitCall: false,
+        expected: null
+      },
+      {
+        orderbook: 'Orderbook',
         lastOrderbookMsgMts: 1000000,
         now: 1600001,
         exitCall: true,
@@ -924,6 +1033,7 @@ describe('Test on XchgConnect class.', function () {
 
     // Assertions.
     for (const test of tests) {
+      connect.orderbook = test.orderbook
       connect.lastOrderbookMsgMts = test.lastOrderbookMsgMts
       const stubDate = sinon.stub(Date, 'now')
       stubDate.returns(test.now)

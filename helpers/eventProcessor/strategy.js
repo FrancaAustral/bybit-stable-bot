@@ -8,6 +8,7 @@ class Strategy {
     this.initStrategyParams(inputParams)
     this.bollinger = new Bollinger(inputParams)
     this.tradingInfo = null // Bybit limitations for trading pair.
+    this.maxTradesInfo = { buy: {}, sell: {} } // From rest endpoint.
   }
 
   initStrategyParams (inputParams) {
@@ -21,8 +22,10 @@ class Strategy {
     this.leverage = inputParams.leverage
   }
 
-  setTradingInfo (tradingInfo) {
-    this.tradingInfo = tradingInfo
+  setAttributesValue (attributesToValue) {
+    for (const [attribute, value] of Object.entries(attributesToValue)) {
+      this[attribute] = value
+    }
   }
 
   getCloseSellOrderInfo (assetBalance) {
@@ -58,12 +61,11 @@ class Strategy {
   }
 
   calcCurrencyAvailable (wallet) {
-    // Get ratio un usd equivalent and apply it to balance.
-    const { coinsToWallet, totalMarginBalance } = wallet
-    const assetUsdEq = Math.abs(+coinsToWallet[this.asset].usdValue)
-    const maxUsdEqToTrade = +totalMarginBalance * this.leverage
-    const availableRatio = (maxUsdEqToTrade - assetUsdEq) / maxUsdEqToTrade
-    return Math.max(availableRatio * totalMarginBalance, 0)
+    // Get ratio in usd equivalent and apply it to balance.
+    const { coinsToWallet, totalEquity } = wallet
+    const assetInUsd = +coinsToWallet[this.asset].usdValue
+    const assetUsdEq = Math.abs(assetInUsd) / this.leverage
+    return Math.max(+totalEquity - assetUsdEq, 0)
   }
 
   getOpenBuyOrderInfo (currencyAvailable, orderbook) {
@@ -72,7 +74,8 @@ class Strategy {
     if (askPrice > openBuyPrice) return false
     const baseAmount = Math.min(
       currencyAvailable / askPrice * this.leverage,
-      askAmount * 0.75
+      askAmount * 0.75,
+      +this.maxTradesInfo.buy?.maxTradeQty * 0.95 || 0
     )
     const amountBasePrec = 1 / +this.tradingInfo.lotSizeFilter.basePrecision
     const amount = Math.round(baseAmount * amountBasePrec) / amountBasePrec
@@ -86,7 +89,8 @@ class Strategy {
     if (bidPrice < openSellPrice) return false
     const baseAmount = Math.min(
       currencyAvailable / bidPrice * this.leverage,
-      bidAmount * 0.75
+      bidAmount * 0.75,
+      +this.maxTradesInfo.sell?.maxTradeQty * 0.95 || 0
     )
     const amountBasePrec = 1 / +this.tradingInfo.lotSizeFilter.basePrecision
     const amount = Math.round(baseAmount * amountBasePrec) / amountBasePrec
